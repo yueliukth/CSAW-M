@@ -4,22 +4,14 @@
 cd ../src || { echo "Could not change directory, aborting..."; exit 1; }
 
 # variables
-base_name="masking_multihot"
+model_name="masking_multihot"
 loss_type="multi_hot"
-img_size="316 256"
-n_repeats=1  # how many models to train
+img_size="632 512"
+gpu=7
 
-run_train() {
-    echo "Training model" $model_name on GPU: $gpu" => started"
-    python main.py --model_name $model_name \
-                --loss_type $loss_type \
-                --img_size $img_size \
-                --gpu_id $gpu
-}
-
-for (( i=1; i<=$n_repeats; i++ ))
-do
-    gpu=$(($i-1))  # specify GPU
-    model_name="${base_name}_run_${i}"
-    run_train
-done
+echo "Training model" $model_name on GPU: $gpu" => started"
+python main.py --train \
+               --model_name $model_name \
+               --loss_type $loss_type \
+               --img_size $img_size \
+               --gpu_id $gpu

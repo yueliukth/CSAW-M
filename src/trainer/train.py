@@ -1,6 +1,6 @@
 import wandb
 
-from . import evaluation_metrics
+from . import evaluation
 from . import utility
 import globals
 import helper
@@ -14,7 +14,7 @@ def possibly_track_metric(metric, value, tracker, step=None):
 
 def track_wandb_metrics(metrics_dict, step):
     for k, v in metrics_dict.items():
-        if k in ['all_image_names', 'all_preds', 'all_labels', 'min_mae_pos', 'max_mae_pos']:  # do not visualize these
+        if k in ['all_image_names', 'all_preds', 'all_bin_probs', 'all_scores', 'all_labels']:  # do not visualize these
             continue
         wandb.log({f'val_{k}': v}, step=step)
 
@@ -34,7 +34,7 @@ def train(model, optimizer, lr, model_name, loss_type, train_loader, val_loader,
             logits = model(image_batch)  # forward uses ann_inds only if model was initialized with 'sep_anns' mode
 
             # calc train loss
-            loss = evaluation_metrics.calc_loss(loss_type, logits, targets)
+            loss = evaluation.calc_loss(loss_type, logits, targets)
             train_loss = loss.item()
 
             # zero the gradients before running the backward pass
@@ -54,7 +54,7 @@ def train(model, optimizer, lr, model_name, loss_type, train_loader, val_loader,
                 if val_loader is not None:
                     model_for_eval = models.init_and_load_model_for_eval(model_name, loss_type, step,
                                                                          checkpoints_path=model_paths['checkpoints_path'])
-                    val_dict = evaluation_metrics.calc_val_metrics(val_loader, model_for_eval, loss_type)
+                    val_dict = evaluation.calc_metrics(val_loader, model_for_eval, loss_type)
                     # track metrics
                     if do_track:
                         track_wandb_metrics(val_dict, step)

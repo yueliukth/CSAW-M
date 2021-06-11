@@ -143,6 +143,10 @@ def show_as_csv(array):
         print(','.join(str_list))
 
 
+def as_str(the_list, sep):
+    return sep.join([str(elem) for elem in the_list])
+
+
 # ----------- functions related to imaging -----------
 def unnormalize_image(image):
     image = image * 255

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import scipy.stats as stats
+import os
 
 import torch
 import torch.nn as nn
@@ -11,10 +12,13 @@ from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 
 import data_handler
+import helper
+import models
 from . import utility
 import globals
 
 
+# ---------------- functions related to evaluation metrics ----------------
 def calc_kendall_rank_correlation(all_preds, all_labels):
     """Gets the kendall's tau-b rank correlation coefficient.
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kendalltau.html
@@ -151,6 +155,7 @@ def calc_oddsratio_downstream(all_preds, all_labels, bin_list):
         return 'nan'
 
 
+# ---------------- functions to be called for evaluation ----------------
 def calc_loss(loss_type, logits, targets):
     if loss_type == 'one_hot':
         loss_fn = nn.CrossEntropyLoss()
@@ -162,11 +167,13 @@ def calc_loss(loss_type, logits, targets):
         raise NotImplementedError('Loss type not implemented')
 
 
-def calc_val_metrics(val_loader, model, loss_type, confusion=False):
+def calc_metrics(val_loader, model, loss_type, confusion=False):
     globals.logger.info('\n\033[1mCalculating val metrics...\033[10m')
     all_preds = []
     all_labels = []
     all_image_names = []
+    all_bin_probs = []
+    all_scores = []
 
     with torch.no_grad():
         for i_batch, batch in enumerate(val_loader):
@@ -174,13 +181,27 @@ def calc_val_metrics(val_loader, model, loss_type, confusion=False):
             image_batch, labels, targets = utility.extract_batch(batch, loss_type)
 
             logits = model(image_batch)
-            val_loss = calc_loss(loss_type, logits, targets).item()
-            preds_list = utility.logits_to_preds(logits, loss_type)[0]  # preds in range [0-7]
-            labels_list = utility.tensor_to_list(labels)  # labels in range [0-7]
+            loss = calc_loss(loss_type, logits, targets).item()  # val or test loss
+            preds_list, probs_2d_list = utility.logits_to_preds(logits, loss_type)  # preds in range [0-7]
 
-            # for confusion matrix
+            # calculate continuous scores and bin probs
+            b_size = image_batch.shape[0]
+            for idx in range(b_size):  # loop over each item in batch
+                probs_1d_list = utility.tensor_to_list(probs_2d_list[idx])  # for current image in batch
+                if loss_type == 'one_hot':
+                    bin_probs = probs_1d_list  # probs_1d_list is already bin probs for one-hot model
+                    score = utility.softmax_score(bin_probs)
+                elif loss_type == 'multi_hot':
+                    bin_probs, score = utility.multi_hot_score(probs_1d_list)  # probs_1d_list is cumulative probs for multi-hot
+                else:
+                    raise NotImplementedError('loss_type not implemented')
+
+                all_bin_probs.append(helper.as_str(bin_probs, sep=';'))  # convert the bin probs list to str and append
+                all_scores.append(score)
+
+            # append labels and pred
             all_preds.extend(preds_list)
-            all_labels.extend(labels_list)
+            all_labels.extend(utility.tensor_to_list(labels))  # labels in range [0-7]
             all_image_names.extend(image_names)
             print(f'Metrics calculation done for batch: {i_batch}')
 
@@ -190,16 +211,16 @@ def calc_val_metrics(val_loader, model, loss_type, confusion=False):
 
     # calculating association metrics
     kendall = calc_kendall_rank_correlation(all_preds, all_labels)
-    # mean abs error
-    abs_error = calc_class_absolute_error(all_preds, all_labels)  # average over classes, not dominated by majority
+    # average mean abs error over classes
+    amae = calc_class_absolute_error(all_preds, all_labels)  # average over classes, not dominated by majority
     # precision, recall, f1 for low and high bins
     low_bin_precision, low_bin_recall, low_bin_f1 = calc_precision_recall_f1(all_preds, all_labels, bins1=[1, 2], bins2=[1, 2])
     high_bin_precision, high_bin_recall, high_bin_f1 = calc_precision_recall_f1(all_preds, all_labels, bins1=[7, 8], bins2=[7, 8])
 
     return_dict = {
-        'val_loss': val_loss,
+        'loss': loss,
         'kendall': kendall,
-        'abs_error': abs_error,
+        'amae': amae,
         'low_bin_precision': low_bin_precision,
         'low_bin_recall': low_bin_recall,
         'low_bin_f1': low_bin_f1,
@@ -208,13 +229,61 @@ def calc_val_metrics(val_loader, model, loss_type, confusion=False):
         'high_bin_f1': high_bin_f1,
         'all_image_names': all_image_names,
         'all_preds': all_preds,
+        'all_bin_probs': all_bin_probs,
+        'all_scores': all_scores,
         'all_labels': all_labels
     }
 
     if confusion:
         globals.logger.info(f'Calculating confusion matrix for all_pred len: {len(all_preds)}, all_labels len: {len(all_labels)}')
         matrix = confusion_matrix(y_true=all_labels, y_pred=all_preds)
-        matrix_normalized = confusion_matrix(y_true=all_labels, y_pred=all_preds, normalize='true')
+        # matrix_normalized = confusion_matrix(y_true=all_labels, y_pred=all_preds, normalize='true')
         return_dict['matrix'] = matrix
-        return_dict['matrix_normalized'] = matrix_normalized
+        # return_dict['matrix_normalized'] = matrix_normalized
     return return_dict
+
+
+def evaluate_model(test_csv, model_name, loss_type, step, params, save_preds_to=None):
+    # load model
+    model = models.init_and_load_model_for_eval(model_name, loss_type, step)
+    # prepare data
+    test_list = helper.read_csv_to_list(test_csv)
+    globals.logger.info(f'Using test_csv: {test_csv} with lines: {len(test_list)}\n')
+
+    test_dataset_params = {
+        'data_folder': params['data']['test_folder'],  # same data_folder for both train and cross-val
+        'img_size': params['train']['img_size'],
+        'data_list': test_list
+    }
+    test_dataloader_params = {
+        'num_workers': params['train']['n_workers'],
+        'batch_size': params['train']['batch_size'],
+        'shuffle': False
+    }
+    globals.logger.info(f'Initializing test data loader...')
+    test_loader = data_handler.init_data_loader(test_dataset_params, test_dataloader_params)
+
+    globals.logger.info('Calculating metrics...')
+    results_dict = calc_metrics(test_loader, model, loss_type, confusion=True)
+
+    # print results
+    globals.logger.info('\n----------------- TEST RESULTS -----------------')
+    for k, v in results_dict.items():
+        if k not in ['all_image_names', 'all_preds', 'all_bin_probs', 'all_scores', 'all_labels']:  # do not print these
+            if k == 'matrix':
+                globals.logger.info(f'{k}:\n{v}')
+            else:
+                globals.logger.info(f'{k}: {round(v, 3)}')
+
+    # write predictions and score to file, if wanted
+    if save_preds_to:
+        aggregate = zip(results_dict['all_image_names'], results_dict['all_bin_probs'], results_dict['all_preds'])
+        header = f"Filename;{helper.as_str([f'Prob_bin_{i}' for i in range(1, 9)], sep=';')};Final_pred"
+
+        helper.make_dir_if_not_exists(os.path.dirname(save_preds_to))
+        with open(save_preds_to, 'w') as f:
+            f.write(f'{header}\n')
+            for item in aggregate:
+                f.write(f"{helper.as_str(item, sep=';')}\n")  # convert items in zip to a line for csv file
+        globals.logger.info(f'Saved results to: {save_preds_to}')
+

@@ -7,15 +7,20 @@ import helper
 import trainer
 import globals
 import data_handler
+import trainer.evaluation as evaluation
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Annotation tool')
+    parser.add_argument('--train', action='store_true')  # for training models
+    parser.add_argument('--evaluate', action='store_true')  # for evaluation
+
     parser.add_argument('--model_name', type=str)
     parser.add_argument('--loss_type', type=str)
 
     parser.add_argument('--train_folder', type=str)  # explicitly set it in the argument, if wanted
     parser.add_argument('--val_folder', type=str)
+    parser.add_argument('--test_folder', type=str)
 
     parser.add_argument('--train_csv', type=str)
     parser.add_argument('--val_csv', type=str)
@@ -24,7 +29,9 @@ def parse_args():
     parser.add_argument('--cv', type=int)  # e.g. --cv 1 denoting the first fold of cross-validation
     parser.add_argument('--checkpoints_path', type=str)
     parser.add_argument('--line_parse_type', type=int)  # for csv file lines
+    parser.add_argument('--save_preds_to', type=str)  # path to save model predictions to
 
+    parser.add_argument('--step', type=int)  # used to load checkpoint for evaluation
     parser.add_argument('--b_size', type=int)  # batch size
     parser.add_argument('--img_size', nargs='+', type=int)
     parser.add_argument('--imread_mode', type=int)
@@ -44,6 +51,7 @@ def parse_args():
 def check_args(args):
     assert args.model_name is not None, 'model_name should be specified'
     assert args.loss_type is not None, 'loss_type should be specified'
+    assert args.train or args.evaluate, 'main script should be run with either --train or --evaluate'
 
 
 def update_params_with_args(args, params):
@@ -55,6 +63,10 @@ def update_params_with_args(args, params):
     if args.val_folder is not None:
         params['data']['val_folder'] = args.val_folder
         print(f'val_folder updated to: {args.val_folder}')
+
+    if args.test_folder is not None:
+        params['data']['test_folder'] = args.test_folder
+        print(f'test_folder updated to: {args.test_folder}')
 
     if args.train_csv is not None:
         params['data']['train_csv'] = args.train_csv
@@ -215,13 +227,27 @@ def main():
     # read args and check they are appropriate
     args = parse_args()
     check_args(args)
+
     # read params and update it based on optional args
     params = helper.read_params()
     update_params_with_args(args, params)
+
     # set globals so they are visible by all modules
     set_globals(args.gpu_id, params)
-    # start training
-    train_model(args, params)
+
+    if args.train:
+        train_model(args, params)  # start training
+
+    elif args.evaluate:
+        assert args.step, 'Please specify --step'
+        evaluation.evaluate_model(test_csv=params['data']['test_csv'],
+                                  model_name=args.model_name,
+                                  loss_type=args.loss_type,
+                                  step=args.step,
+                                  params=params,
+                                  save_preds_to=args.save_preds_to)
+    else:
+        raise NotImplementedError('Please specify the correct tag: --train, --evaluate')
 
 
 if __name__ == '__main__':

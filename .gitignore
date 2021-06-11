@@ -1,3 +1,4 @@
+data/*
 all_others/
 *.idea
 __pycache__*
@@ -6,3 +7,6 @@ __pycache__/
 .DS_Store
 **/.DS_Scleartore
 tmp/*
+scripts_local/*
+env_files_local/*
+docker_local/*

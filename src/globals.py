@@ -6,9 +6,9 @@ logger = None
 params = None  # global params after reading the params yaml file, declared here so the changes to params based on args is visible to all modules
 
 
-def setup_logger(logger_name='logger', log_file=None, error_file=None, include_datetime=False, pure_line=False):
+def setup_logger(logger_name='logger', include_datetime=False, pure_line=False):
     global logger
-    logger = helper.get_logger(logger_name, log_file, error_file, include_datetime, pure_line=pure_line)
+    logger = helper.get_logger(logger_name, include_datetime, pure_line=pure_line)
     handlers_as_str = '\n'.join(map(str, logger.handlers))
     logger.info(f"Set up logger done with name '{logger.name}' and handlers: \n{handlers_as_str}\n")
 

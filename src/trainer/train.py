@@ -1,5 +1,6 @@
 import wandb
-from .loss import calc_loss, calc_val_metrics
+
+from . import evaluation_metrics
 from . import utility
 import globals
 import helper
@@ -13,12 +14,12 @@ def possibly_track_metric(metric, value, tracker, step=None):
 
 def track_wandb_metrics(metrics_dict, step):
     for k, v in metrics_dict.items():
-        if k in ['all_image_names', 'all_preds', 'min_mae_pos', 'max_mae_pos']:
+        if k in ['all_image_names', 'all_preds', 'all_labels', 'min_mae_pos', 'max_mae_pos']:  # do not visualize these
             continue
         wandb.log({f'val_{k}': v}, step=step)
 
 
-def train(model, optimizer, lr, model_name, model_mode, loss_type, train_loader, val_loader, max_epoch, eval_step,
+def train(model, optimizer, lr, model_name, loss_type, train_loader, val_loader, max_epoch, eval_step,
           do_track, resume_step=None, resume_epoch=None):
     # preparing for train data
     model_paths = helper.get_paths(model_name)
@@ -28,13 +29,15 @@ def train(model, optimizer, lr, model_name, model_mode, loss_type, train_loader,
     # training loop
     while epoch <= max_epoch:
         for i_batch, batch in enumerate(train_loader):
-            image_batch, targets, labels, ann_inds, int_cancer_weights = utility.extract_batch(batch, loss_type)
-            logits = model(image_batch, ann_inds)  # forward uses ann_inds only if model was initialized with 'sep_anns' mode
+            # get batch, do forward pass
+            image_batch, labels, targets = utility.extract_batch(batch, loss_type)
+            logits = model(image_batch)  # forward uses ann_inds only if model was initialized with 'sep_anns' mode
 
-            loss = calc_loss(loss_type, logits, targets)
+            # calc train loss
+            loss = evaluation_metrics.calc_loss(loss_type, logits, targets)
             train_loss = loss.item()
 
-            # making gradients zero in each optimization step
+            # zero the gradients before running the backward pass
             model.zero_grad()
             loss.backward()
             optimizer.step()
@@ -49,8 +52,9 @@ def train(model, optimizer, lr, model_name, model_mode, loss_type, train_loader,
                 helper.save_checkpoint(model_paths['checkpoints_path'], step, model, optimizer, train_loss, lr)
                 # calc val metrics by loading the saved model in eval mode
                 if val_loader is not None:
-                    model_for_eval = models.init_and_load_model_for_eval(model_name, model_mode, loss_type, step)
-                    val_dict = calc_val_metrics(val_loader, model_for_eval, model_mode, loss_type)
+                    model_for_eval = models.init_and_load_model_for_eval(model_name, loss_type, step,
+                                                                         checkpoints_path=model_paths['checkpoints_path'])
+                    val_dict = evaluation_metrics.calc_val_metrics(val_loader, model_for_eval, loss_type)
                     # track metrics
                     if do_track:
                         track_wandb_metrics(val_dict, step)

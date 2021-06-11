@@ -1,0 +1,30 @@
+data:  # paths assuming that code is running in src directory
+  train_folder: '../data/CSAW-M/images/preprocessed/train'
+  val_folder: '../data/CSAW-M/images/preprocessed/train'  # same as train folder (cross-validation)
+  test_folder: '../data/CSAW-M/images/preprocessed/test'
+
+  train_csv: '../data/CSAW-M/labels/CSAW-M_train.csv'
+  val_csv: ''  # by default there are no val split, instead one col duse cross-validation
+  test_csv: '../data/CSAW-M/labels/CSAW-M_test.csv'
+
+  # files for cross-validation
+  cv_files: ['../data/CSAW-M/cross_validation/CSAW-M_cross_validation_split1.txt',
+             '../data/CSAW-M/cross_validation/CSAW-M_cross_validation_split2.txt',
+             '../data/CSAW-M/cross_validation/CSAW-M_cross_validation_split3.txt',
+             '../data/CSAW-M/cross_validation/CSAW-M_cross_validation_split4.txt',
+             '../data/CSAW-M/cross_validation/CSAW-M_cross_validation_split5.txt']
+
+  imread_mode: 2  # 1 for 8-bit png images, 2 for 16-bit png images
+  csv_sep_type: 2  # 1 for ',' and 2 for ';'
+  line_parse_type: 1 # from each line in the csv file, take (Filename, Label) only
+
+
+train:
+  augments: 'h_flip v_flip rot_10 color_jitter'  # training data augmentations
+  img_size: [632, 512]
+  batch_size: 64
+  n_workers: 4  # number of workers in data loaders
+  lr: 0.000001
+  n_epochs: 50
+  eval_step: 50  # evaluate every 50 iterations (used in cross-validation)
+  checkpoints_path: '../checkpoints'  # where checkpoint be saved

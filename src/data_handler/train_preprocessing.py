@@ -2,13 +2,20 @@ import torch
 from PIL import Image
 from torchvision import transforms
 import cv2
-import globals
 
 
-def make_one_hot(label, n_labels=8):
-    one_hot = [0] * n_labels
-    one_hot[label] = 1
-    return one_hot
+def convert_label(label, direction):
+    """
+    When preparing the label for training, we convert each label in range [1-8] to [0-7] since torch expect the labels
+    to be in range [0-7] for 8 classes. We use the same converted label for producing multi-hot encoding.
+    When evaluation, we convert back the prediction labels in [0-7] to be in [1-8].
+    """
+    if direction == 'to_train':
+        return label - 1
+    elif direction == 'from_train':  # 'from_train'
+        return label + 1
+    else:
+        raise NotImplementedError('Direction for converting labels not implemented')
 
 
 def make_multi_hot(label, n_labels=8):
@@ -29,24 +36,19 @@ def get_transforms(image_size, augments):
     if augments is not None:
         if 'h_flip' in augments:
             trans_list.append(transforms.RandomHorizontalFlip())
-            # globals.logger.info(f'RandomHorizontalFlip added to transformations')
 
         if 'v_flip' in augments:
             trans_list.append(transforms.RandomVerticalFlip())
-            # globals.logger.info(f'RandomVerticalFlip added to transformations')
 
         if 'rot_10' in augments:
             trans_list.append(transforms.RandomRotation(degrees=10))
-            # globals.logger.info(f'RandomRotation with 10 degrees added to transformations')
 
         if 'rot_15' in augments:
             trans_list.append(transforms.RandomRotation(degrees=15))
-            # globals.logger.info(f'RandomRotation with 15 degrees added to transformations')
 
         if 'color_jitter' in augments:
             jitters = {'brightness': 0.2, 'contrast': 0.2}
             trans_list.append(transforms.ColorJitter(**jitters))
-            # globals.logger.info(f'ColorJitter with jitters: {jitters} added to transformations')
 
     # finally transform to tensor
     trans_list.append(transforms.ToTensor())

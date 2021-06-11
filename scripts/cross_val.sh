@@ -17,8 +17,6 @@ do
     python main.py --model_name $model_name \
                --loss_type $loss_type \
                --cv $i \
-               --checkpoints_path $checkpoints_path \
-               --train_folder $train_folder \
                --img_size $img_size \
                --gpu_id $gpu
 done

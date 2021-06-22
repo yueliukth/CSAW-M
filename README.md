@@ -4,7 +4,7 @@ _---- This repo is under construction and is contunusously being updated! ----_
 
 
 ### Training
-In order to train a model, please refer to `scripts/train.sh` where we have prepared commands and arguments to train a model.
+In order to train a model, please refer to `scripts/train.sh` where we have prepared commands and arguments to train a model. In order to encourage reproducibility, we also provide the cross-validation splits that we used in the project (please refer to the dataset webiste to access them). `scripts/cross_val.sh` provides example commands to run cross-validation.
 
 ### Evaluation
 In order to evaluate a trained model, please refer to `scripts/eval.sh` with example commands and arguments to evaluate a model.

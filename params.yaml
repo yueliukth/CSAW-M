@@ -4,7 +4,7 @@ data:  # paths assuming that code is running in src directory
   test_folder: '../data/CSAW-M/images/preprocessed/test'
 
   train_csv: '../data/CSAW-M/labels/CSAW-M_train.csv'
-  val_csv: ''  # by default there are no val split, instead one col duse cross-validation
+  val_csv: ''  # by default there are no val split, instead one cold use cross-validation
   test_csv: '../data/CSAW-M/labels/CSAW-M_test.csv'
 
   # files for cross-validation

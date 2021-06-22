@@ -17,7 +17,10 @@ In order to evaluate a trained model, please refer to `scripts/eval.sh` with exa
 - `--img_size`: specifies the image size to train the model with.  
 - Almost all the params in `params.yml` could be overridden using the corresponding arguments. Please refer to `main.py` to see the corresponding args.
 
-### Other notes:
+### Other notes
 - It is assumed that `main.py` is called from _inside_ the `src` directory.
 - It is important to note that in the beginning of the main script, after reading/checking arguments, `params` defined in `params.yml`is read and updated according to `args`, after which a call to the `set_globals` (defined in `main.py`) is made. This sets global params needed to run the program (GPU device, loggers etc.) For every new high-level module (like `main.py`) that accepts running arguments and calls other modules, this function shoud be called, as other modules assume that these global params are set.
 - By default, there is no suggested validation csv files, but in cross-validation (using `--cv`) the train/validation splits in each fold are extracted from the `cv_files` paths specified in `params.yml`.
+
+### Trained models
+You can download the trained models from: https://kth.box.com/s/poqjqhwnx86rb6irpjhudvntz22zksqj. Please refer to `main.py` to see how to use a trained model for evaluation.

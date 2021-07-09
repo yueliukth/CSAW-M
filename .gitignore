@@ -10,3 +10,4 @@ tmp/*
 scripts_local/*
 env_files_local/*
 docker_local/*
+src/history.py

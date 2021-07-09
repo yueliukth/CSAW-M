@@ -13,7 +13,7 @@ import helper
 
 # function to remove texts in the image
 # only breast remained
-def segment_breast(img, low_int_threshold=0.05):
+def segment_breast(img, low_int_threshold=0.05, only_breast_bbox=True):
     # create img for thresholding and contours
     img_8u = (img.astype('float32') / img.max() * 255).astype('uint8')
     if low_int_threshold < 1:
@@ -29,6 +29,12 @@ def segment_breast(img, low_int_threshold=0.05):
     
     # segment the breast
     img_breast_only = cv2.bitwise_and(img, img, mask=breast_mask)
+
+    # the case were we want the whole image (with breast segmented and everywhere else 0's) to be returned
+    if not only_breast_bbox:
+        return img_breast_only, None
+
+    # otherwise return only the bounding box around the segmented breast
     x, y, w, h = cv2.boundingRect(contours[idx])
     img_breast_only = img_breast_only[y:y+h, x:x+w]
     return img_breast_only, (x, y, w, h)
@@ -89,7 +95,7 @@ def pad_or_crop_single_maxloc(img, maxloc, full_height=632, full_width=512, if_m
     return img_new
 
 
-def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=False):
+def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=False, only_remove_text=False):
     # read the csv file as df
     df = pd.read_csv(labels_path, delimiter=';', dtype={'sourcefile': str})
 
@@ -108,23 +114,27 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=False):
         img_path = os.path.join(image_folder, filename)
         img_array = cv2.imread(img_path, cv2.IMREAD_ANYDEPTH)  # read the 16-bit PNG as is
 
-        # flip the image if necessary to make all breasts left-posed
-        if dicom_imagelaterality == 'R':
-            img_array = cv2.flip(img_array, 1)
-    
-        # intensity rescaling according to window center and window width
-        img_array = exposure.rescale_intensity(img_array, in_range=(dicom_windowcenter - dicom_windowwidth / 2,
-                                                                    dicom_windowcenter + dicom_windowwidth / 2))
-        # invert the color if needed
-        if dicom_photometricinterpretation == 'MONOCHROME1':
-            img_array = cv2.bitwise_not(img_array)
-        
-        # segment the image so that only breast remained
-        img_array, _ = segment_breast(img_array)
+        if only_remove_text:
+            # segment the image so that only breast remained
+            new_img, _ = segment_breast(img_array, only_breast_bbox=False)
+        else:
+            # flip the image if necessary to make all breasts left-posed
+            if dicom_imagelaterality == 'R':
+                img_array = cv2.flip(img_array, 1)
 
-        # crop with distance transform and pad
-        max_loc = new_cropping_single_dist(img_array)
-        new_img = pad_or_crop_single_maxloc(img_array, max_loc, if_movey=if_movey)
+            # intensity rescaling according to window center and window width
+            img_array = exposure.rescale_intensity(img_array, in_range=(dicom_windowcenter - dicom_windowwidth / 2,
+                                                                        dicom_windowcenter + dicom_windowwidth / 2))
+            # invert the color if needed
+            if dicom_photometricinterpretation == 'MONOCHROME1':
+                img_array = cv2.bitwise_not(img_array)
+
+            # segment the image so that only breast remained
+            img_array, _ = segment_breast(img_array)
+
+            # crop with distance transform and pad
+            max_loc = new_cropping_single_dist(img_array)
+            new_img = pad_or_crop_single_maxloc(img_array, max_loc, if_movey=if_movey)
 
         new_filepath = os.path.join(save_dir, filename)
         if not os.path.exists(os.path.dirname(new_filepath)):

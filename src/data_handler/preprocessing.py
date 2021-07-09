@@ -89,7 +89,7 @@ def pad_or_crop_single_maxloc(img, maxloc, full_height=632, full_width=512, if_m
     return img_new
 
 
-def raw_to_preprocessed(image_folder, labels_path, save_dir):
+def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=False):
     # read the csv file as df
     df = pd.read_csv(labels_path, delimiter=';', dtype={'sourcefile': str})
 
@@ -124,7 +124,7 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir):
 
         # crop with distance transform and pad
         max_loc = new_cropping_single_dist(img_array)
-        new_img = pad_or_crop_single_maxloc(img_array, max_loc, if_movey=False)
+        new_img = pad_or_crop_single_maxloc(img_array, max_loc, if_movey=if_movey)
 
         new_filepath = os.path.join(save_dir, filename)
         if not os.path.exists(os.path.dirname(new_filepath)):

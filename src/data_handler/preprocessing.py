@@ -236,6 +236,12 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=True, only
 
 
 def _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits=False):
+    """
+    Notes:
+        - image_size should either be a (w, h) tuple like (512, 632) or a dict like {(3328, 4096): (512, 632), (2560, 3328): (394, 514)}.
+    """
+    assert type(image_size) == tuple or type(image_size) == dict, 'image_size should either be a tuple or a dict'
+
     for i, dicom_basename in enumerate(dicom_basenames):
         dicom_filepath = os.path.join(dicom_folder, dicom_basename)
         png_basename = dicom_basename.replace('.dcm', '.png')
@@ -249,13 +255,24 @@ def _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_b
             print(f'A problem occurred when reading: {dicom_filepath}: \n{message}')
             exit(1)
 
+        # determine down-sampled image size to keep the aspect ratio of the original resolution images
+        if type(image_size) == tuple:
+            determined_image_size = image_size
+        elif type(image_size) == dict:
+            orig_shape = img_array.shape  # (h, w)
+            orig_shape_wh = (img_array.shape[1], img_array.shape[0])  # (w, h)
+            assert orig_shape_wh in image_size, f'Down-sampling size for orig_shape={orig_shape_wh} not specified in image_size={image_size}'
+            determined_image_size = image_size[orig_shape_wh]
+        else:
+            raise NotImplementedError('"determined_image_size" cannot be calculated for the current image_size')
+
         # save images
         if reduce_bits:  # this reduces the quality of the PNG image - it has not been used in the project
             img_array = img_array / (2 ** 16 - 1)
             img_array = helper.unnormalize_image(img_array)  # reduce to 8 bits, using np.astype(np.uint8) destroys the image
-            Image.fromarray(img_array).convert('RGB').resize(image_size).save(new_path)  # save as RGB not gray
+            Image.fromarray(img_array).convert('RGB').resize(determined_image_size).save(new_path)  # save as RGB not gray
         else:
-            cv2.imwrite(new_path, cv2.resize(img_array.astype(np.uint16), image_size))
+            cv2.imwrite(new_path, cv2.resize(img_array.astype(np.uint16), determined_image_size))
 
         print(f'Image saved to: \n{new_path}')
         print(f'Done for image {i + 1}/{len(dicom_basenames)}\n')

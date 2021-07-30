@@ -191,7 +191,7 @@ def pad_or_crop_single_maxloc(img, maxloc, full_height=632, full_width=512, if_m
     return img_new
 
 
-def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=True, only_remove_text=False):
+def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=True):
     # read the csv file as df
     df = pd.read_csv(labels_path, delimiter=';', dtype={'sourcefile': str})
 
@@ -210,34 +210,29 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=True, only
         img_path = os.path.join(image_folder, filename)
         img_array = cv2.imread(img_path, cv2.IMREAD_ANYDEPTH)  # read the 16-bit PNG as is
 
-        if only_remove_text:  # todo: remove this - deprecated (not OK)
-            raise NotImplementedError('Deprecated - not OK')
-            # segment the image so that only breast remained
-            # new_img, _ = segment_breast(img_array, only_breast_bbox=False)
-        else:
-            # flip the image if necessary to make all breasts left-posed
-            if dicom_imagelaterality == 'R':
-                img_array = cv2.flip(img_array, 1)
+        # flip the image if necessary to make all breasts left-posed
+        if dicom_imagelaterality == 'R':
+            img_array = cv2.flip(img_array, 1)
 
-            # intensity rescaling according to window center and window width
-            # note: CSAW-M images have one value for dicom_windowcenter and dicom_windowwidth (which may not be the case in other datasets)
-            img_array = exposure.rescale_intensity(img_array, in_range=(dicom_windowcenter - dicom_windowwidth / 2,
-                                                                        dicom_windowcenter + dicom_windowwidth / 2))
-            min_val = int(np.min(img_array))  # take note of the min values in the rescaled array
+        # intensity rescaling according to window center and window width
+        # note: CSAW-M images have one value for dicom_windowcenter and dicom_windowwidth (which may not be the case in other datasets)
+        img_array = exposure.rescale_intensity(img_array, in_range=(dicom_windowcenter - dicom_windowwidth / 2,
+                                                                    dicom_windowcenter + dicom_windowwidth / 2))
+        min_val = int(np.min(img_array))  # take note of the min values in the rescaled array
 
-            # invert the color if needed
-            if dicom_photometricinterpretation == 'MONOCHROME1':
-                img_array = cv2.bitwise_not(img_array)
+        # invert the color if needed
+        if dicom_photometricinterpretation == 'MONOCHROME1':
+            img_array = cv2.bitwise_not(img_array)
 
-            # crop with distance transform and pad
-            max_loc = new_cropping_single_dist(img_array)
-            new_img = pad_or_crop_single_maxloc(img_array, max_loc, if_movey=if_movey)
+        # crop with distance transform and pad
+        max_loc = new_cropping_single_dist(img_array)
+        new_img = pad_or_crop_single_maxloc(img_array, max_loc, if_movey=if_movey)
 
-            contours_list = get_contours(new_img)
-            print(f'contour: {contours_list}')
-            if len(contours_list) > 0:  # list either empty or necessarily has one element
-                contour = np.squeeze(contours_list[0])  # coordinates of the points in the selected contour, array (N, 1, 2) -> squeeze to (N, 2)
-                new_img = cv2.fillPoly(img=new_img.copy(), pts=[contour], color=(min_val, min_val, min_val))  # fill the contour with min value of the array (air)
+        contours_list = get_contours(new_img)
+        print(f'contour: {contours_list}')
+        if len(contours_list) > 0:  # list either empty or necessarily has one element
+            contour = np.squeeze(contours_list[0])  # coordinates of the points in the selected contour, array (N, 1, 2) -> squeeze to (N, 2)
+            new_img = cv2.fillPoly(img=new_img.copy(), pts=[contour], color=(min_val, min_val, min_val))  # fill the contour with min value of the array (air)
 
         new_filepath = os.path.join(save_dir, filename)
         if not os.path.exists(os.path.dirname(new_filepath)):

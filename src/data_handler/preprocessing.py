@@ -121,18 +121,32 @@ def segment_breast(img, low_int_threshold=0.05, only_breast_bbox=True):
 # function to locate the center of mass
 def new_cropping_single_dist(img):
     opening_it = 5
-    kernel_size = (25, 25)
+    kernel_size = (15, 15)
     kernel = np.ones(shape=kernel_size, dtype=np.uint8)
 
+    # create binary image from source image
     _, img = cv2.threshold(src=img, thresh=img.min(), maxval=img.max(), type=cv2.THRESH_BINARY)  # binarize img: make all pixels greater than thresh equal to maxval, and the rest 0
+    
+    # gaussian bluring to remove sharp pixels
     img = cv2.GaussianBlur(src=img, ksize=kernel_size, sigmaX=0, sigmaY=0)   # sigmaX=0, sigmaY=0 will result in OpenCV defining the std's by itself
+    
+    # apply dilation to connect all breast tissue
     img = cv2.dilate(src=img, kernel=kernel, iterations=5)
+  
+    # apply opening to remove noise
     opening = cv2.morphologyEx(src=img, op=cv2.MORPH_OPEN, kernel=kernel, iterations=opening_it)
+    
+    # add boarders to the image (width 1, value 0) to prepare for later distance transform with which we find the distance from every nonzero pixels to its boarder
     opening = cv2.copyMakeBorder(src=opening, top=1, bottom=1, left=1, right=1, borderType=cv2.BORDER_CONSTANT, value=0)
     opening = opening.astype(np.uint8)
     
+    # distance transform
     dist = cv2.distanceTransform(src=opening, distanceType=cv2.DIST_L2, maskSize=5)  # calculates the distance to the closest zero pixel for each pixel of the source image (from OpenCV doc)
+    
+    # apply gussain blurring on distance transform
     dist = cv2.GaussianBlur(src=dist, ksize=kernel_size, sigmaX=0, sigmaY=0)
+
+    # finds the position with maximum maximum element value
     max_loc = cv2.minMaxLoc(dist)[-1]
     return max_loc
 

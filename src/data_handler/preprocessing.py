@@ -248,7 +248,7 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=True):
                                                                     dicom_windowcenter + dicom_windowwidth / 2))
 
         # convert 16 bits to 8 bits
-        img_array = (img_array / 256).astype(np.uint8)
+        # img_array = (img_array / 256).astype(np.uint8)
         min_val = int(np.min(img_array))  # take note of the min values in the rescaled array
 
         # invert the color if needed

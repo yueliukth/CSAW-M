@@ -41,6 +41,7 @@ def threshold_img(img, low_int_threshold=0.05):
     # create img for thresholding and contours
     img_8u = (img.astype('float32') / img.max() * 255).astype('uint8')
 
+    # a threshold of 0.05 is chosen as the minimum to makes sure small irrelavant dots (e.g. dust etc.) are not included
     if low_int_threshold < 1:
         low_th = int(img_8u.max() * low_int_threshold)
     else:
@@ -342,7 +343,8 @@ def dicoms_to_raw_pngs(dicom_folder, dicom_basenames, png_folder, image_size, re
         _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits)
 
 
-# given dicom_path that points to dicom images, this function outputs a csv file with all image basenames, full paths, and other dicom attributes that should be considered while preprocessing
+# given dicom_path that points to dicom images, this function outputs a csv file with all image basenames,
+# full paths, and other dicom attributes that should be considered while preprocessing
 def get_dicom_attr_from_dcm(dicom_path): 
     df = pd.DataFrame()
     i = 0

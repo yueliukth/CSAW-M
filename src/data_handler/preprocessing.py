@@ -245,7 +245,7 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=True):
         # intensity rescaling according to window center and window width
         # note: CSAW-M images have one value for dicom_windowcenter and dicom_windowwidth (which may not be the case in other datasets)
         img_array = exposure.rescale_intensity(img_array, in_range=(dicom_windowcenter - dicom_windowwidth / 2,
-                                                                    dicom_windowcenter + dicom_windowwidth / 2))
+                                                                    dicom_windowcenter + dicom_windowwidth / 2), out_range=(0, 255))
 
         # convert 16 bits to 8 bits
         # img_array = (img_array / 256).astype(np.uint8)

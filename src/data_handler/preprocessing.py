@@ -300,3 +300,47 @@ def dicoms_to_raw_pngs(dicom_folder, dicom_basenames, png_folder, image_size, re
             pool.starmap(_save_as_png, all_args)
     else:
         _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits)
+
+# given dicom_path that points to dicom images, this function outputs a csv file with all image basenames, full paths, and other dicom attributes that should be considered while preprocessing
+def get_dicom_attr_from_dcm(dicom_path): 
+    df = pd.DataFrame()
+    i = 0
+    for root, fodler, files in os.walk(dicom_path):
+        for name in files:
+            if name.endswith('.dcm'):        
+                img_path = os.path.join(root,name)
+                img_dcm = pydicom.dcmread(img_path)
+                img_array = img_dcm.pixel_array
+                dicom_windowcenter = img_dcm.WindowCenter
+                dicom_windowwidth= img_dcm.WindowWidth
+                dicom_imagelaterality = img_dcm.ImageLaterality
+                dicom_photometricinterpretation = img_dcm.PhotometricInterpretation
+                dicom_bitsallocated = img_dcm.BitsAllocated
+                dicom_bitsstored = img_dcm.BitsStored
+                try:
+                    dicom_voilutfunction = img_dcm.VOILUTFunction
+                except Exception as e:
+                    dicom_voilutfunction = ''
+                try:
+                    dicom_imagerpixelspacing = str(img_dcm.ImagerPixelSpacing)
+                except Exception as e:
+                    dicom_imagerpixelspacing = ''
+                try:
+                    dicom_pixelspacing = str(img_dcm.PixelSpacing)
+                except Exception as e:
+                    dicom_pixelspacing = ''
+                df.loc[i,'dicom_basename']=name
+                df.loc[i,'dicom_path']=img_path
+                df.loc[i,'dicom_resolution']=str(np.shape(img_array))
+                df.loc[i,'dicom_bitsallocated']=dicom_bitsallocated
+                df.loc[i,'dicom_bitsstored']=dicom_bitsstored
+                df.loc[i,'dicom_imagerpixelspacing']=dicom_imagerpixelspacing
+                df.loc[i,'dicom_pixelspacing']=dicom_pixelspacing                
+                df.loc[i,'dicom_windowcenter']=dicom_windowcenter
+                df.loc[i,'dicom_windowwidth']=dicom_windowwidth
+                df.loc[i,'dicom_voilutfunction']=dicom_voilutfunction
+                df.loc[i,'dicom_imagelaterality']=dicom_imagelaterality
+                df.loc[i,'dicom_photometricinterpretation']=dicom_photometricinterpretation
+                i += 1
+    return df
+

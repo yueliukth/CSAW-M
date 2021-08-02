@@ -11,6 +11,7 @@ import traceback
 
 import helper
 
+
 def get_breast_percent(img_array, if_pad_small_resolution=False, if_large_resolution=False):
     # pad small resolution images if necessary
     if if_pad_small_resolution:
@@ -35,6 +36,7 @@ def get_breast_percent(img_array, if_pad_small_resolution=False, if_large_resolu
     breast_percent = mask_area / img_area
     return breast_percent
 
+
 def threshold_img(img, low_int_threshold=0.05):
     # create img for thresholding and contours
     img_8u = (img.astype('float32') / img.max() * 255).astype('uint8')
@@ -46,6 +48,7 @@ def threshold_img(img, low_int_threshold=0.05):
     _, img_bin = cv2.threshold(img_8u, low_th, maxval=255, type=cv2.THRESH_BINARY)
     return img_bin
 
+
 def get_centroid(img, low_int_threshold=0.05):
     _, _, biggest_contour = segment_breast(img, low_int_threshold)
 
@@ -54,6 +57,7 @@ def get_centroid(img, low_int_threshold=0.05):
     cx = int(M['m10'] / M['m00'])
     cy = int(M['m01'] / M['m00'])
     return cx, cy
+
 
 def get_contours(array, min_contour_area=10, kernel_size=(10, 10), save_as=None, colorful=False):
     array_max = 2 ** 16 - 1  # assumption: image read as 16-bit values
@@ -145,7 +149,9 @@ def segment_breast(img, low_int_threshold=0.05):
     # segment the breast
     img_breast_only = cv2.bitwise_and(img, img, mask=breast_mask)
 
+    # breast_mask is a binary mask, and img_breast_only is with real pixel values shown in the area of breast_mask
     return img_breast_only, breast_mask, biggest_contour
+
 
 # function to locate the center of mass
 def new_cropping_single_dist(img):
@@ -219,6 +225,7 @@ def pad_or_crop_single_maxloc(img, maxloc, full_height=632, full_width=512, if_m
             int((img_new.shape[1] - img.shape[1]) / 2):int((img_new.shape[1] - img.shape[1]) / 2) + img.shape[1]] = img
     return img_new
 
+
 def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=True):
     # read the csv file as df
     df = pd.read_csv(labels_path, delimiter=';', dtype={'sourcefile': str})
@@ -276,6 +283,7 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, if_movey=True):
         print(f'Image saved to: \n{new_filepath}')
         print(f'Done for image {i + 1}/{df.shape[0]}\n')
 
+
 def _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits=False):
     """
     Notes:
@@ -318,6 +326,7 @@ def _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_b
         print(f'Image saved to: \n{new_path}')
         print(f'Done for image {i + 1}/{len(dicom_basenames)}\n')
 
+
 def dicoms_to_raw_pngs(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits=False, n_processes=1):
     # this is the main functions that is used to preprocess all images to png (supports multi-processing)
     helper.make_dir_if_not_exists(png_folder)
@@ -331,6 +340,7 @@ def dicoms_to_raw_pngs(dicom_folder, dicom_basenames, png_folder, image_size, re
             pool.starmap(_save_as_png, all_args)
     else:
         _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits)
+
 
 # given dicom_path that points to dicom images, this function outputs a csv file with all image basenames, full paths, and other dicom attributes that should be considered while preprocessing
 def get_dicom_attr_from_dcm(dicom_path): 

@@ -361,6 +361,8 @@ def get_dicom_attr_from_dcm(dicom_path):
                 dicom_photometricinterpretation = img_dcm.PhotometricInterpretation
                 dicom_bitsallocated = img_dcm.BitsAllocated
                 dicom_bitsstored = img_dcm.BitsStored
+                dicom_presentationlutshape = img_dcm.PresentationLUTShape
+
                 try:
                     dicom_voilutfunction = img_dcm.VOILUTFunction
                 except Exception as e:
@@ -373,17 +375,19 @@ def get_dicom_attr_from_dcm(dicom_path):
                     dicom_pixelspacing = str(img_dcm.PixelSpacing)
                 except Exception as e:
                     dicom_pixelspacing = ''
-                df.loc[i,'dicom_basename']=name
-                df.loc[i,'dicom_path']=img_path
-                df.loc[i,'dicom_resolution']=str(np.shape(img_array))
-                df.loc[i,'dicom_bitsallocated']=dicom_bitsallocated
-                df.loc[i,'dicom_bitsstored']=dicom_bitsstored
-                df.loc[i,'dicom_imagerpixelspacing']=dicom_imagerpixelspacing
-                df.loc[i,'dicom_pixelspacing']=dicom_pixelspacing                
-                df.loc[i,'dicom_windowcenter']=dicom_windowcenter
-                df.loc[i,'dicom_windowwidth']=dicom_windowwidth
-                df.loc[i,'dicom_voilutfunction']=dicom_voilutfunction
-                df.loc[i,'dicom_imagelaterality']=dicom_imagelaterality
-                df.loc[i,'dicom_photometricinterpretation']=dicom_photometricinterpretation
+
+                df.loc[i, 'dicom_basename'] = name
+                df.loc[i, 'dicom_path'] = img_path
+                df.loc[i, 'dicom_resolution'] = str(np.shape(img_array))
+                df.loc[i, 'dicom_bitsallocated'] = dicom_bitsallocated
+                df.loc[i, 'dicom_bitsstored'] = dicom_bitsstored
+                df.loc[i, 'dicom_imagerpixelspacing'] = dicom_imagerpixelspacing
+                df.loc[i, 'dicom_pixelspacing'] = dicom_pixelspacing
+                df.loc[i, 'dicom_windowcenter'] = dicom_windowcenter
+                df.loc[i, 'dicom_windowwidth'] = dicom_windowwidth
+                df.loc[i, 'dicom_voilutfunction'] = dicom_voilutfunction
+                df.loc[i, 'dicom_imagelaterality'] = dicom_imagelaterality
+                df.loc[i, 'dicom_photometricinterpretation'] = dicom_photometricinterpretation
+                df.loc[i, 'dicom_presentationlutshape'] = dicom_presentationlutshape
                 i += 1
     return df

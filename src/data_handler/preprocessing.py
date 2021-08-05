@@ -271,9 +271,14 @@ def raw_to_preprocessed(raw_folder, labels_path, save_dir, specials, desired_ful
             'Desired full_width and full_height after moving breast do not match of the desired full_width and full_height'
 
         if filename not in specials['skip']:
-            # get the contour aroud text and fill it
-            contours_list = get_text_contour(new_img)
-            # list either empty or necessarily has one element
+            config = {}  # default (empty config)
+            for special_key in [key for key in specials.keys() if key.startswith('special')]:
+                if filename in specials[special_key]['filenames']:
+                    config = specials[special_key]['config']
+                    print(f'For filename: {filename}, using config: {config}')
+
+            contours_list = get_text_contour(new_img, **config)  # get the contour aroud text (list either empty or necessarily has one element)
+
             if len(contours_list) > 0:
                 # contour = np.squeeze(contours_list[0])  # coordinates of the points in the selected contour, array (N, 1, 2) -> squeeze to (N, 2)
                 # new_img = cv2.fillPoly(img=new_img.copy(), pts=[contour], color=min_val)  # fill the contour with min value of the array (air)

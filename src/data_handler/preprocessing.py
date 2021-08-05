@@ -286,10 +286,11 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, desired_full_height
         print(f'Done for image {i + 1}/{df.shape[0]}\n')
 
 
-def _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits=False):
+def _save_as_raw_png(dicom_folder, dicom_basenames, png_folder, image_size):
     """
     Notes:
-        - image_size should either be a (w, h) tuple like (512, 632) or a dict like {(3328, 4096): (512, 632), (2560, 3328): (394, 514)}.
+        - image_size should either be a (w, h) tuple like (512, 632) or
+        a dict like {(3328, 4096): (512, 632), (2560, 3328): (394, 514)}, mapping different orig resolution to donwsampling resolution.
     """
     assert type(image_size) == tuple or type(image_size) == dict, 'image_size should either be a tuple or a dict'
 
@@ -300,7 +301,7 @@ def _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_b
 
         try:
             img_dcm = pydicom.dcmread(dicom_filepath)
-            img_array = img_dcm.pixel_array
+            img_array = img_dcm.pixel_array  # np array uint16
         except:
             message = traceback.format_exc()  # get full traceback
             print(f'A problem occurred when reading: {dicom_filepath}: \n{message}')
@@ -318,18 +319,19 @@ def _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_b
             raise NotImplementedError('"determined_image_size" cannot be calculated for the current image_size')
 
         # save images
-        if reduce_bits:  # this reduces the quality of the PNG image - it has not been used in the project
-            img_array = img_array / (2 ** 16 - 1)
-            img_array = helper.unnormalize_image(img_array)  # reduce to 8 bits, using np.astype(np.uint8) destroys the image
-            Image.fromarray(img_array).convert('RGB').resize(determined_image_size).save(new_path)  # save as RGB not gray
-        else:
-            cv2.imwrite(new_path, cv2.resize(img_array.astype(np.uint16), determined_image_size))  # save the raw PNG as 16-bit
+        # if reduce_bits:  # this reduces the quality of the PNG image - it has not been used in the project
+        #     img_array = img_array / (2 ** 16 - 1)
+        #     img_array = helper.unnormalize_image(img_array)  # reduce to 8 bits, using np.astype(np.uint8) destroys the image
+        #     Image.fromarray(img_array).convert('RGB').resize(determined_image_size).save(new_path)  # save as RGB not gray
+        # else:
+        # save the raw PNG as 16-bit (16 bits allocated to dicom pixel_array)
+        cv2.imwrite(new_path, cv2.resize(img_array.astype(np.uint16), determined_image_size))
 
         print(f'Image saved to: \n{new_path}')
         print(f'Done for image {i + 1}/{len(dicom_basenames)}\n')
 
 
-def dicoms_to_raw_pngs(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits=False, n_processes=1):
+def dicoms_to_raw_pngs(dicom_folder, dicom_basenames, png_folder, image_size, n_processes=1):
     # this is the main functions that is used to preprocess all images to png (supports multi-processing)
     helper.make_dir_if_not_exists(png_folder)
     print(f'Doing pre-processing for {len(dicom_basenames)} files, dicom_folder: {dicom_folder}')
@@ -337,11 +339,11 @@ def dicoms_to_raw_pngs(dicom_folder, dicom_basenames, png_folder, image_size, re
         chunks = np.array_split(dicom_basenames, n_processes)
         chunks = [ch.tolist() for ch in chunks]  # convert to list
         # manually prepare args to be send to each function
-        all_args = [(dicom_folder, the_chunk, png_folder, image_size, reduce_bits) for the_chunk in chunks]
+        all_args = [(dicom_folder, the_chunk, png_folder, image_size) for the_chunk in chunks]
         with multiprocessing.Pool(n_processes) as pool:
-            pool.starmap(_save_as_png, all_args)
+            pool.starmap(_save_as_raw_png, all_args)
     else:
-        _save_as_png(dicom_folder, dicom_basenames, png_folder, image_size, reduce_bits)
+        _save_as_raw_png(dicom_folder, dicom_basenames, png_folder, image_size)
 
 
 # given dicom_path that points to dicom images, this function outputs a csv file with all image basenames,

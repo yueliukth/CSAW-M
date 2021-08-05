@@ -59,7 +59,7 @@ def get_centroid(img, threshold=0):
     return cx, cy
 
 
-def get_contours(array, min_contour_area=10, kernel_size=(10, 10), save_as=None, colorful=False):
+def get_text_contour(array, min_contour_area=10, max_contour_area=10000, kernel_size=(10, 10), save_as=None, colorful=False):
     """
     Input should be an array with dtype np.unit8.
     """
@@ -80,7 +80,9 @@ def get_contours(array, min_contour_area=10, kernel_size=(10, 10), save_as=None,
     # We know letters are close together, so apply MORPH_CLOSE with a kernel to aggregate contours that are close together so we can form a unified cluster
     array_breast_removed = cv2.morphologyEx(src=array_breast_removed.copy(), op=cv2.MORPH_DILATE, kernel=cv2.getStructuringElement(shape=cv2.MORPH_RECT, ksize=kernel_size))
     _, contours, _ = cv2.findContours(array_breast_removed.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    contours = [cont for cont in contours if cv2.contourArea(cont) > min_contour_area]  # ignore contours that are still small (they cannot be a text cluster)
+
+    # ignore contours that are very small (random dust in the air) or very large (vertical bar) - they cannot be a text cluster
+    contours = [cont for cont in contours if min_contour_area < cv2.contourArea(cont) < max_contour_area]
 
     # skip the contours below the breast (those that were part of body, but not in the same contour as the breast)
     # contour shape (N, 1, 2) where N is the number of points in cv2 contour (x coordinate -> left-to-right, y coordinate -> top-to-down)
@@ -220,12 +222,12 @@ def move_breast_centroid(img, centroid, full_height, full_width, if_movey=False)
     return img
 
 
-def raw_to_preprocessed(image_folder, labels_path, save_dir, desired_full_height=632, desired_full_width=512, if_movey=False):
+def raw_to_preprocessed(raw_folder, labels_path, save_dir, specials, desired_full_height=632, desired_full_width=512, if_movey=False):
     # read the csv file as df
     df = pd.read_csv(labels_path, delimiter=';', dtype={'sourcefile': str})
 
-    n_images = len(helper.files_with_suffix(image_folder, suffix='.png'))
-    print(f'Found {n_images} images in: {image_folder} and {len(df)} rows in: {labels_path}')
+    n_images = len(helper.files_with_suffix(raw_folder, suffix='.png'))
+    print(f'Found {n_images} images in: {raw_folder} and {len(df)} rows in: {labels_path}')
 
     # preprocess images on by one
     for i in range(df.shape[0]):
@@ -236,7 +238,7 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, desired_full_height
         dicom_windowwidth = row['Dicom_window_width']
         dicom_photometricinterpretation = row['Dicom_photometric_interpretation']
 
-        img_path = os.path.join(image_folder, filename)
+        img_path = os.path.join(raw_folder, filename)
         if not os.path.isfile(img_path):  # if the file does not exist, contine
             continue
 
@@ -268,19 +270,23 @@ def raw_to_preprocessed(image_folder, labels_path, save_dir, desired_full_height
         assert new_img.shape[0] == desired_full_height and new_img.shape[1] == desired_full_width, \
             'Desired full_width and full_height after moving breast do not match of the desired full_width and full_height'
 
-        # get the contour aroud text and fill it
-        contours_list = get_contours(new_img)
-        if len(contours_list) > 0:  # list either empty or necessarily has one element
-            # contour = np.squeeze(contours_list[0])  # coordinates of the points in the selected contour, array (N, 1, 2) -> squeeze to (N, 2)
-            # new_img = cv2.fillPoly(img=new_img.copy(), pts=[contour], color=min_val)  # fill the contour with min value of the array (air)
-            # --- for debuggin when drawing contours, use: color=128, thickness=3
-            new_img = cv2.drawContours(image=new_img.copy(), contours=contours_list, contourIdx=-1, color=min_val, thickness=cv2.FILLED)  # fill the contour with min value of the array (air)
+        if filename not in specials['skip']:
+            # get the contour aroud text and fill it
+            contours_list = get_text_contour(new_img)
+            # list either empty or necessarily has one element
+            if len(contours_list) > 0:
+                # contour = np.squeeze(contours_list[0])  # coordinates of the points in the selected contour, array (N, 1, 2) -> squeeze to (N, 2)
+                # new_img = cv2.fillPoly(img=new_img.copy(), pts=[contour], color=min_val)  # fill the contour with min value of the array (air)
+                # --- for debugging when drawing contours, use e.g.: color=128, thickness=3
+                new_img = cv2.drawContours(image=new_img.copy(), contours=contours_list, contourIdx=-1, color=min_val, thickness=cv2.FILLED)  # fill the contour with min value of the array (air)
 
+        # make the path
         new_filepath = os.path.join(save_dir, filename)
         if not os.path.exists(os.path.dirname(new_filepath)):
             os.makedirs(os.path.dirname(new_filepath))
             print(f'Created folder: {os.path.dirname(new_filepath)}')
 
+        # save the image
         cv2.imwrite(new_filepath, new_img)
         print(f'Image saved to: \n{new_filepath}')
         print(f'Done for image {i + 1}/{df.shape[0]}\n')

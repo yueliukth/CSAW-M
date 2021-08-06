@@ -7,7 +7,7 @@ import globals
 
 
 class MammoDataset(data.Dataset):
-    def __init__(self, data_folder, img_size, data_list=None, augments=None, line_parse_type=1, imread_mode=2, csv_sep_type=2):
+    def __init__(self, data_folder, img_size, imread_mode, line_parse_type, csv_sep_type, data_list=None, augments=None):
         self.data_folder = data_folder
         self.img_size = img_size
         self.data_list = data_list

@@ -76,6 +76,10 @@ def update_params_with_args(args, params):
         params['data']['val_csv'] = args.val_csv
         print(f'val_csv updated to: {args.val_csv}')
 
+    if args.test_csv is not None:
+        params['data']['test_csv'] = args.test_csv
+        print(f'test_csv updated to: {args.test_csv}')
+
     if args.img_size is not None:
         params['train']['img_size'] = args.img_size
         print(f'img_size updated to: {args.img_size}')
@@ -189,6 +193,9 @@ def train_model(args, params):
     common_dataset_params = {
         'data_folder': params['data']['train_folder'],  # same data_folder for both train and cross-val
         'img_size': params['train']['img_size'],
+        'imread_mode': params['data']['imread_mode'],
+        'line_parse_type': params['data']['line_parse_type'],
+        'csv_sep_type': params['data']['csv_sep_type']
     }
     # common params for data loader
     common_data_loader_params = {

@@ -44,7 +44,7 @@ def load_resnet(model_name, pretrained, freeze_params, n_layers_to_remove, verbo
             - Output shape of the forward pass is [512 x 8 x 8] excluding the batch size for resnet34.
             - Output shape of the forward pass is [2048 x 8 x 8] excluding the batch size for resnet50.
     """
-    globals.logger.info(f'Loading ResNet, pretrained={pretrained}')
+    globals.logger.info(f'Loading {model_name}, pretrained={pretrained}')
     if model_name == 'resnet18':
         resnet_model = models.resnet18(pretrained)
     elif model_name == 'resnet34':

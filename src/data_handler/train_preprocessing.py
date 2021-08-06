@@ -60,7 +60,7 @@ def get_transforms(image_size, augments):
 def load_and_preprocess(image_path, img_size, read_mode, augments):
     trans = get_transforms(img_size, augments)
     if read_mode == 1:  # read with PIL
-        image = Image.open(image_path)
+        image = Image.open(image_path).convert('RGB')
     else:
         image_array = cv2.imread(image_path)  # read with cv2 as RGB with 3 channels - for images that PIL cannot understand
         image = Image.fromarray(image_array)  # convert to PIL image

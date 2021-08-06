@@ -37,7 +37,7 @@ def calc_kendall_rank_correlation(all_preds, all_labels):
         The two-sided p-value for a hypothesis test whose null hypothesis is an absence of association, tau = 0.
     """
 
-    tau, p_value = stats.kendalltau(all_preds, all_labels, 'b')
+    tau, p_value = stats.kendalltau(all_preds, all_labels)
     return tau
 
 
@@ -251,9 +251,12 @@ def evaluate_model(test_csv, model_name, loss_type, step, params, save_preds_to=
     globals.logger.info(f'Using test_csv: {test_csv} with lines: {len(test_list)}\n')
 
     test_dataset_params = {
-        'data_folder': params['data']['test_folder'],  # same data_folder for both train and cross-val
+        'data_list': test_list,
+        'data_folder': params['data']['test_folder'],
         'img_size': params['train']['img_size'],
-        'data_list': test_list
+        'imread_mode': params['data']['imread_mode'],
+        'line_parse_type': params['data']['line_parse_type'],
+        'csv_sep_type': params['data']['csv_sep_type']
     }
     test_dataloader_params = {
         'num_workers': params['train']['n_workers'],
@@ -273,7 +276,7 @@ def evaluate_model(test_csv, model_name, loss_type, step, params, save_preds_to=
             if k == 'matrix':
                 globals.logger.info(f'{k}:\n{v}')
             else:
-                globals.logger.info(f'{k}: {round(v, 3)}')
+                globals.logger.info(f'{k}: {round(v, 4)}')
 
     # write predictions and score to file, if wanted
     if save_preds_to:

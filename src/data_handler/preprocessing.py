@@ -222,21 +222,24 @@ def move_breast_centroid(img, centroid, full_height, full_width, if_movey=False)
     return img
 
 
-def raw_to_preprocessed(raw_folder, labels_path, save_dir, specials, desired_full_height=632, desired_full_width=512, if_movey=False):
+def _save_as_preprocessed_png(raw_folder, basenames, labels_path, save_dir, specials, desired_full_height, desired_full_width, if_movey, ignore_non_specials):
     # read the csv file as df
     df = pd.read_csv(labels_path, delimiter=';', dtype={'sourcefile': str})
-
-    n_images = len(helper.files_with_suffix(raw_folder, suffix='.png'))
-    print(f'Found {n_images} images in: {raw_folder} and {len(df)} rows in: {labels_path}')
+    # extract special filenames
+    special_filenames = []
+    for value in specials.values():
+        special_filenames.extend(value['filenames'])
 
     # preprocess images on by one
-    for i in range(df.shape[0]):
-        row = df.iloc[i, :]
-        filename = row['Filename']
-        dicom_imagelaterality = row['Dicom_image_laterality']
-        dicom_windowcenter = row['Dicom_window_center']
-        dicom_windowwidth = row['Dicom_window_width']
-        dicom_photometricinterpretation = row['Dicom_photometric_interpretation']
+    for i_file, filename in enumerate(basenames):
+        if ignore_non_specials and filename not in special_filenames:
+            continue
+
+        row = df.loc[df['Filename'] == filename]
+        dicom_imagelaterality = row['Dicom_image_laterality'].values[0]
+        dicom_windowcenter = row['Dicom_window_center'].values[0]
+        dicom_windowwidth = row['Dicom_window_width'].values[0]
+        dicom_photometricinterpretation = row['Dicom_photometric_interpretation'].values[0]
 
         img_path = os.path.join(raw_folder, filename)
         if not os.path.isfile(img_path):  # if the file does not exist, contine
@@ -266,11 +269,8 @@ def raw_to_preprocessed(raw_folder, labels_path, save_dir, specials, desired_ful
 
         # move the centroid of the breast to the center of the image along x-axis only
         new_img = move_breast_centroid(img=img_array, centroid=(cx, cy), full_height=desired_full_height, full_width=desired_full_width, if_movey=if_movey)
-        # make sure the output image dimensions are as desired
-        assert new_img.shape[0] == desired_full_height and new_img.shape[1] == desired_full_width, \
-            'Desired full_width and full_height after moving breast do not match of the desired full_width and full_height'
 
-        if filename not in specials['skip']:
+        if filename not in specials['skip']['filenames']:
             config = {}  # default (empty config)
             for special_key in [key for key in specials.keys() if key.startswith('special')]:
                 if filename in specials[special_key]['filenames']:
@@ -285,6 +285,12 @@ def raw_to_preprocessed(raw_folder, labels_path, save_dir, specials, desired_ful
                 # --- for debugging when drawing contours, use e.g.: color=128, thickness=3
                 new_img = cv2.drawContours(image=new_img.copy(), contours=contours_list, contourIdx=-1, color=min_val, thickness=cv2.FILLED)  # fill the contour with min value of the array (air)
 
+        # sanity check that dtype is as desired
+        assert new_img.dtype == np.uint8, f'new_img dtype is supposed to be {np.uint8} but is {new_img.dtype}'
+        # make sure the output image dimensions are as desired
+        assert new_img.shape[0] == desired_full_height and new_img.shape[1] == desired_full_width, \
+            'Desired full_width and full_height after preprocessing do not match of the desired full_width and full_height'
+
         # make the path
         new_filepath = os.path.join(save_dir, filename)
         if not os.path.exists(os.path.dirname(new_filepath)):
@@ -294,7 +300,19 @@ def raw_to_preprocessed(raw_folder, labels_path, save_dir, specials, desired_ful
         # save the image
         cv2.imwrite(new_filepath, new_img)
         print(f'Image saved to: \n{new_filepath}')
-        print(f'Done for image {i + 1}/{df.shape[0]}\n')
+        print(f'Done for image {i_file + 1}/{len(basenames)}\n')
+
+
+def raw_to_preprocessed(raw_folder, labels_path, save_dir, specials, desired_full_height=632, desired_full_width=512, if_movey=False, ignore_non_specials=False, n_processes=1):
+    basenames = helper.files_with_suffix(raw_folder, '.png', pure=True)
+    if n_processes > 1:
+        chunks = np.array_split(basenames, n_processes)
+        chunks = [ch.tolist() for ch in chunks]  # convert to list
+        all_args = [(raw_folder, the_chunk, labels_path, save_dir, specials, desired_full_height, desired_full_width, if_movey, ignore_non_specials) for the_chunk in chunks]
+        with multiprocessing.Pool(n_processes) as pool:
+            pool.starmap(_save_as_preprocessed_png, all_args)
+    else:
+        _save_as_preprocessed_png(raw_folder, basenames, labels_path, save_dir, specials, desired_full_height, desired_full_width, if_movey, ignore_non_specials)
 
 
 def _save_as_raw_png(dicom_folder, dicom_basenames, png_folder, image_size):

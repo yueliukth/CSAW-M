@@ -17,12 +17,21 @@ class MammoDataset(data.Dataset):
         self.csv_sep_char = ',' if csv_sep_type == 1 else ';'
         globals.logger.info(f'MammoDataset created with image size: {img_size}, imread_mode: {imread_mode}\n')
 
+        # make data_list if not provided
+        if self.data_list is None:
+            self.data_list = helper.files_with_suffix(self.data_folder, suffix='.png', pure=True)
+            globals.logger.info(f'Manually initialized data_list with all {len(self.data_list)} png images in data_folder')
+
+
     def parse_line(self, data_line):
         if self.line_parse_type == 1:
             image_name, label = data_line.split(self.csv_sep_char)[:2]
+            label = int(label)
+        elif self.line_parse_type == 0:  # data_line is the actual pure filename
+            image_name, label = data_line, 'none'
         else:
             raise NotImplementedError('line_parse_type not implemented')
-        return image_name, int(label)
+        return image_name, label
 
     def make_image_tensor(self, image_name):
         image_path = os.path.join(self.data_folder, image_name)  # make full path
@@ -35,8 +44,13 @@ class MammoDataset(data.Dataset):
         data_line = self.data_list[index]
         image_name, label = self.parse_line(data_line)
         image_tensor = self.make_image_tensor(image_name)
-        label = train_preprocessing.convert_label(label, direction='to_train')  # convert scalar labels from [1-8] to [1-7]
-        multi_hot_label = train_preprocessing.make_multi_hot(label)
+
+        if label != 'none':
+            label = train_preprocessing.convert_label(label, direction='to_train')  # convert scalar labels from [1-8] to [1-7]
+            multi_hot_label = train_preprocessing.make_multi_hot(label)
+        else:
+            multi_hot_label = 'none'
+
         return {
             'image': image_tensor,
             'label': label,

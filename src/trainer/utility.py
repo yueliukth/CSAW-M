@@ -12,15 +12,17 @@ def tensor_to_list(tensor):
 
 def extract_batch(batch, loss_type):
     image_batch = batch['image'].to(globals.get_current_device())
-    labels = batch['label'].to(globals.get_current_device())  # label is always scalar for each image
-
-    # target (used in torch loss function) is the same as label (scalar) for softmax, but is multi_hot_label for multi-hot model
-    if loss_type == 'multi_hot':
-        targets = batch['multi_hot_label'].to(globals.get_current_device())
-    elif loss_type == 'one_hot':
-        targets = labels
+    if 'none' not in batch['label']:  # if there is 'none' in label, it means there is no label
+        labels = batch['label'].to(globals.get_current_device())  # label is always scalar for each image
+        # target (used in torch loss function) is the same as label (scalar) for softmax, but is multi_hot_label for multi-hot model
+        if loss_type == 'multi_hot':
+            targets = batch['multi_hot_label'].to(globals.get_current_device())
+        elif loss_type == 'one_hot':
+            targets = labels
+        else:
+            raise NotImplementedError('loss_type not implemented')
     else:
-        raise NotImplementedError('loss_type not implemented')
+        labels, targets = batch['label'], batch['label']  # list of 'none' values in case there is no label
     return image_batch, labels, targets
 
 

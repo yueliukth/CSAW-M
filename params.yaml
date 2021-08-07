@@ -16,7 +16,7 @@ data:  # paths assuming that code is running in src directory
 
   imread_mode: 1  # 1 for 8-bit png images, 2 for 16-bit png images
   csv_sep_type: 2  # 1 for ',' and 2 for ';'
-  line_parse_type: 1 # from each line in the csv file, take (Filename, Label) only
+  line_parse_type: 1 # 1: from each line in the csv file, take (Filename, Label) only, 0: the actual pure filename is extracted from the provided data_folder
 
 
 train:

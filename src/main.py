@@ -14,6 +14,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Annotation tool')
     parser.add_argument('--train', action='store_true')  # for training models
     parser.add_argument('--evaluate', action='store_true')  # for evaluation
+    parser.add_argument('--only_get_preds', action='store_true')  # for evaluation
 
     parser.add_argument('--model_name', type=str)
     parser.add_argument('--loss_type', type=str)
@@ -75,6 +76,10 @@ def update_params_with_args(args, params):
     if args.val_csv is not None:
         params['data']['val_csv'] = args.val_csv
         print(f'val_csv updated to: {args.val_csv}')
+
+    if args.test_csv is not None:
+        params['data']['test_csv'] = args.test_csv
+        print(f'test_csv updated to: {args.test_csv}')
 
     if args.img_size is not None:
         params['train']['img_size'] = args.img_size
@@ -189,6 +194,9 @@ def train_model(args, params):
     common_dataset_params = {
         'data_folder': params['data']['train_folder'],  # same data_folder for both train and cross-val
         'img_size': params['train']['img_size'],
+        'imread_mode': params['data']['imread_mode'],
+        'line_parse_type': params['data']['line_parse_type'],
+        'csv_sep_type': params['data']['csv_sep_type']
     }
     # common params for data loader
     common_data_loader_params = {
@@ -240,11 +248,11 @@ def main():
 
     elif args.evaluate:
         assert args.step, 'Please specify --step'
-        evaluation.evaluate_model(test_csv=params['data']['test_csv'],
-                                  model_name=args.model_name,
+        evaluation.evaluate_model(model_name=args.model_name,
                                   loss_type=args.loss_type,
                                   step=args.step,
                                   params=params,
+                                  only_get_preds=args.only_get_preds,
                                   save_preds_to=args.save_preds_to)
     else:
         raise NotImplementedError('Please specify the correct tag: --train, --evaluate')

@@ -37,7 +37,7 @@ def calc_kendall_rank_correlation(all_preds, all_labels):
         The two-sided p-value for a hypothesis test whose null hypothesis is an absence of association, tau = 0.
     """
 
-    tau, p_value = stats.kendalltau(all_preds, all_labels, 'b')
+    tau, p_value = stats.kendalltau(all_preds, all_labels)
     return tau
 
 
@@ -167,7 +167,7 @@ def calc_loss(loss_type, logits, targets):
         raise NotImplementedError('Loss type not implemented')
 
 
-def calc_metrics(val_loader, model, loss_type, confusion=False):
+def calc_metrics(val_loader, model, loss_type, confusion=False, only_get_preds=False):
     globals.logger.info('\n\033[1mCalculating val metrics...\033[10m')
     all_preds = []
     all_labels = []
@@ -181,7 +181,10 @@ def calc_metrics(val_loader, model, loss_type, confusion=False):
             image_batch, labels, targets = utility.extract_batch(batch, loss_type)
 
             logits = model(image_batch)
-            loss = calc_loss(loss_type, logits, targets).item()  # val or test loss
+            if not only_get_preds:
+                loss = calc_loss(loss_type, logits, targets).item()  # val or test loss
+            else:
+                loss = None
             preds_list, probs_2d_list = utility.logits_to_preds(logits, loss_type)  # preds in range [0-7]
 
             # calculate continuous scores and bin probs
@@ -201,21 +204,26 @@ def calc_metrics(val_loader, model, loss_type, confusion=False):
 
             # append labels and pred
             all_preds.extend(preds_list)
-            all_labels.extend(utility.tensor_to_list(labels))  # labels in range [0-7]
+            all_labels.extend(utility.tensor_to_list(labels) if 'none' not in labels else labels)  # labels in range [0-7]
             all_image_names.extend(image_names)
             print(f'Metrics calculation done for batch: {i_batch}')
 
     # convert all predictions and labels from [0-7] back to [1-8]
     all_preds = [data_handler.convert_label(pred, direction='from_train') for pred in all_preds]
-    all_labels = [data_handler.convert_label(label, direction='from_train') for label in all_labels]
+    all_labels = [data_handler.convert_label(label, direction='from_train') if label != 'none' else label for label in all_labels]
 
-    # calculating association metrics
-    kendall = calc_kendall_rank_correlation(all_preds, all_labels)
-    # average mean abs error over classes
-    amae = calc_class_absolute_error(all_preds, all_labels)  # average over classes, not dominated by majority
-    # precision, recall, f1 for low and high bins
-    low_bin_precision, low_bin_recall, low_bin_f1 = calc_precision_recall_f1(all_preds, all_labels, bins1=[1, 2], bins2=[1, 2])
-    high_bin_precision, high_bin_recall, high_bin_f1 = calc_precision_recall_f1(all_preds, all_labels, bins1=[7, 8], bins2=[7, 8])
+    # calc metrics
+    if not only_get_preds:
+        # calculating association metrics
+        kendall = calc_kendall_rank_correlation(all_preds, all_labels)
+        # average mean abs error over classes
+        amae = calc_class_absolute_error(all_preds, all_labels)  # average over classes, not dominated by majority
+        # precision, recall, f1 for low and high bins
+        low_bin_precision, low_bin_recall, low_bin_f1 = calc_precision_recall_f1(all_preds, all_labels, bins1=[1, 2], bins2=[1, 2])
+        high_bin_precision, high_bin_recall, high_bin_f1 = calc_precision_recall_f1(all_preds, all_labels, bins1=[7, 8], bins2=[7, 8])
+    else:
+        kendall = amae = None
+        low_bin_precision = low_bin_recall = low_bin_f1 = high_bin_precision = high_bin_recall = high_bin_f1 = None
 
     return_dict = {
         'loss': loss,
@@ -243,17 +251,27 @@ def calc_metrics(val_loader, model, loss_type, confusion=False):
     return return_dict
 
 
-def evaluate_model(test_csv, model_name, loss_type, step, params, save_preds_to=None):
+def evaluate_model(model_name, loss_type, step, params, only_get_preds=False, save_preds_to=None):
     # load model
     model = models.init_and_load_model_for_eval(model_name, loss_type, step)
+
     # prepare data
-    test_list = helper.read_csv_to_list(test_csv)
-    globals.logger.info(f'Using test_csv: {test_csv} with lines: {len(test_list)}\n')
+    test_csv = params['data']['test_csv']
+
+    if test_csv != 'none':
+        test_list = helper.read_csv_to_list(test_csv)
+        globals.logger.info(f'Using test_csv: {test_csv} with lines: {len(test_list)}\n')
+    else:  # just data_folder is provided and the filenames are extracted in the MammoDataset
+        test_list = None
+        globals.logger.info(f'No test_csv provided, set test_list to {test_list}\n')
 
     test_dataset_params = {
-        'data_folder': params['data']['test_folder'],  # same data_folder for both train and cross-val
+        'data_list': test_list,
+        'data_folder': params['data']['test_folder'],
         'img_size': params['train']['img_size'],
-        'data_list': test_list
+        'imread_mode': params['data']['imread_mode'],
+        'line_parse_type': params['data']['line_parse_type'],
+        'csv_sep_type': params['data']['csv_sep_type']
     }
     test_dataloader_params = {
         'num_workers': params['train']['n_workers'],
@@ -264,16 +282,18 @@ def evaluate_model(test_csv, model_name, loss_type, step, params, save_preds_to=
     test_loader = data_handler.init_data_loader(test_dataset_params, test_dataloader_params)
 
     globals.logger.info('Calculating metrics...')
-    results_dict = calc_metrics(test_loader, model, loss_type, confusion=True)
+    if_confusion = not only_get_preds
+    results_dict = calc_metrics(test_loader, model, loss_type, confusion=if_confusion, only_get_preds=only_get_preds)
 
     # print results
-    globals.logger.info('\n----------------- TEST RESULTS -----------------')
-    for k, v in results_dict.items():
-        if k not in ['all_image_names', 'all_preds', 'all_bin_probs', 'all_scores', 'all_labels']:  # do not print these
-            if k == 'matrix':
-                globals.logger.info(f'{k}:\n{v}')
-            else:
-                globals.logger.info(f'{k}: {round(v, 3)}')
+    if not only_get_preds:
+        globals.logger.info('\n----------------- TEST RESULTS -----------------')
+        for k, v in results_dict.items():
+            if k not in ['all_image_names', 'all_preds', 'all_bin_probs', 'all_scores', 'all_labels']:  # do not print these
+                if k == 'matrix':
+                    globals.logger.info(f'{k}:\n{v}')
+                else:
+                    globals.logger.info(f'{k}: {round(v, 4)}')
 
     # write predictions and score to file, if wanted
     if save_preds_to:

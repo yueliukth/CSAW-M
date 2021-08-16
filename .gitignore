@@ -12,3 +12,5 @@ docker_local/*
 src/history.py
 src/test.py
 trash/*
+docker/build_docker.sh
+docker/run_docker.sh

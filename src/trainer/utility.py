@@ -10,9 +10,23 @@ def tensor_to_list(tensor):
     return [t.item() for t in tensor]  # 1d tensor as list
 
 
+def to_str_list(tensor_or_list):
+    assert torch.is_tensor(tensor_or_list) or type(tensor_or_list) == list  # input should be either tensor or list
+    if torch.is_tensor(tensor_or_list):
+        the_list = tensor_to_list(tensor_or_list)
+    else:
+        the_list = tensor_or_list
+    return list(map(str, the_list))
+
+
 def extract_batch(batch, loss_type):
     image_batch = batch['image'].to(globals.get_current_device())
-    if 'none' not in batch['label']:  # if there is 'none' in label, it means there is no label
+    # print(type(batch['label']))
+    # input()
+    # print(list(map(str, tensor_to_list(batch['label']))))
+    # input()
+
+    if 'none' not in to_str_list(batch['label']):  # if there is 'none' in label, it means there is no label
         labels = batch['label'].to(globals.get_current_device())  # label is always scalar for each image
         # target (used in torch loss function) is the same as label (scalar) for softmax, but is multi_hot_label for multi-hot model
         if loss_type == 'multi_hot':

@@ -204,7 +204,7 @@ def calc_metrics(val_loader, model, loss_type, confusion=False, only_get_preds=F
 
             # append labels and pred
             all_preds.extend(preds_list)
-            all_labels.extend(utility.tensor_to_list(labels) if 'none' not in labels else labels)  # labels in range [0-7]
+            all_labels.extend(utility.tensor_to_list(labels) if 'none' not in utility.to_str_list(labels) else labels)  # labels in range [0-7]
             all_image_names.extend(image_names)
             print(f'Metrics calculation done for batch: {i_batch}')
 
@@ -297,8 +297,8 @@ def evaluate_model(model_name, loss_type, step, params, only_get_preds=False, sa
 
     # write predictions and score to file, if wanted
     if save_preds_to:
-        aggregate = zip(results_dict['all_image_names'], results_dict['all_bin_probs'], results_dict['all_preds'])
-        header = f"Filename;{helper.as_str([f'Prob_bin_{i}' for i in range(1, 9)], sep=';')};Final_pred"
+        aggregate = zip(results_dict['all_image_names'], results_dict['all_bin_probs'], results_dict['all_preds'], results_dict['all_scores'])
+        header = f"Filename;{helper.as_str([f'Prob_bin_{i}' for i in range(1, 9)], sep=';')};Final_pred;Final_score"
 
         helper.make_dir_if_not_exists(os.path.dirname(save_preds_to))
         with open(save_preds_to, 'w') as f:

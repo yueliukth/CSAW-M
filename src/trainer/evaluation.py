@@ -17,6 +17,7 @@ import models
 from . import utility
 import globals
 
+
 def make_master_pred_csv(mapping_csv_path, label_csv_path, multihot_pred_path, softmax_pred_path):
     # target final columns are
     # ['Filename', 'Label', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5',
@@ -68,6 +69,7 @@ def make_master_pred_csv(mapping_csv_path, label_csv_path, multihot_pred_path, s
 
     return df
 
+
 def df_score_to_bin(df):
     num = int(df.shape[0] / 8)
     column_list = [column for column in df.columns.tolist() if 'score_' in column]
@@ -106,8 +108,8 @@ def make_ranks_from_private(df):
     return df_with_ranks
 
 
-
 # ---------------- functions related to evaluation metrics ----------------
+
 
 def calc_kendall_rank_correlation(all_preds, all_labels):
     """Gets the kendall's tau-b rank correlation coefficient.
@@ -182,13 +184,14 @@ def calc_precision_and_recall_network(all_preds, all_labels, bins1, bins2):
     f1 = f1_score(y_true=all_labels, y_pred=all_preds, average='binary', pos_label='t')
     return precision, recall, f1
 
+
 def calc_aucs(all_preds_prob, all_auc_labels):
     """Gets AUC score for downstream task.
     Parameters
     ----------
-    all_preds: list
+    all_preds_prob: list
         A list of predicted values.
-    all_labels: list
+    all_auc_labels: list
         A list of labels.
     Returns
     -------
@@ -198,6 +201,7 @@ def calc_aucs(all_preds_prob, all_auc_labels):
 
     auc = roc_auc_score(all_auc_labels, all_preds_prob)
     return auc
+
 
 def calc_oddsratio_downstream(all_preds, all_labels, bin_list, metric):
     """Gets odds ratio for downstream task.
@@ -253,7 +257,9 @@ def get_metric(metric, all_preds, all_labels, bin_list1, bin_list2):
     elif metric == 'highbinf1_private':
         return calc_precision_and_recall_network(all_preds, all_labels, bin_list1, bin_list2)[-1]
 
+
 # ---------------- functions related to plotting results ----------------
+
 
 def highlight_min(s):
     if s.dtype == np.object:
@@ -344,6 +350,7 @@ def plot_corr_map(corr, save_path=None, masking=True, vmax=None, cmap='Blues', f
         plt.hlines(1, 0, 7, colors='white', linestyles='dashed', linewidth=2)
     if save_path != None:
         plt.savefig(save_path, dpi=120, bbox_inches='tight')
+
 
 def get_table_metric_downstream_auc(df, if_highlight=True):
     table = [['AUC', 'If_interval_cancer', 'If_large_invasive_cancer', 'If_composite']]
@@ -616,6 +623,7 @@ def plot_metric_seperate_masking_levels(corr, save_path=None, vmax=None, cmap='B
 
 # ---------------- functions to be called for evaluation ----------------
 
+
 def calc_loss(loss_type, logits, targets):
     if loss_type == 'one_hot':
         loss_fn = nn.CrossEntropyLoss()
@@ -679,8 +687,8 @@ def calc_metrics(val_loader, model, loss_type, confusion=False, only_get_preds=F
         # average mean abs error over classes
         amae = calc_class_absolute_error(all_preds, all_labels)  # average over classes, not dominated by majority
         # precision, recall, f1 for low and high bins
-        low_bin_precision, low_bin_recall, low_bin_f1 = calc_precision_recall_f1(all_preds, all_labels, bins1=[1, 2], bins2=[1, 2])
-        high_bin_precision, high_bin_recall, high_bin_f1 = calc_precision_recall_f1(all_preds, all_labels, bins1=[7, 8], bins2=[7, 8])
+        low_bin_precision, low_bin_recall, low_bin_f1 = calc_precision_and_recall_network(all_preds, all_labels, bins1=[1, 2], bins2=[1, 2])
+        high_bin_precision, high_bin_recall, high_bin_f1 = calc_precision_and_recall_network(all_preds, all_labels, bins1=[7, 8], bins2=[7, 8])
     else:
         kendall = amae = None
         low_bin_precision = low_bin_recall = low_bin_f1 = high_bin_precision = high_bin_recall = high_bin_f1 = None

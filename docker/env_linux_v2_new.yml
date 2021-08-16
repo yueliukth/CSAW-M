@@ -1,4 +1,4 @@
-name: detect  # a newer version of env_linux.yml which has wandb
+name: base
 channels:
   - pytorch
   - conda-forge
@@ -219,4 +219,3 @@ dependencies:
     - wrapt==1.12.1
     - wurlitzer==2.0.1
     - zipp==3.4.0
-prefix: /opt/anaconda/envs/detect

@@ -78,8 +78,7 @@ RUN conda init bash
 COPY env_linux_v2_new.yml $HOME
 
 # build the conda environment using the yaml file
-RUN conda update --name base --channel defaults conda && \
-    conda env create -f $HOME/env_linux_v2_new.yml && \
+RUN conda env update --name base --file $HOME/env_linux_v2_new.yml && \
     conda clean --all --yes
 
 # activate the env

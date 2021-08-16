@@ -11,6 +11,10 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import roc_auc_score
 from sklearn.metrics import confusion_matrix
 
+import functools
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 import data_handler
 import helper
 import models
@@ -37,7 +41,7 @@ def make_master_pred_csv(mapping_csv_path, label_csv_path, multihot_pred_path, s
 
     df1 = pd.read_csv(mapping_csv_path, delimiter=';', dtype={'sourcefile': str})
     df = pd.read_csv(label_csv_path, delimiter=';', dtype={'sourcefile': str})
-    df = reduce(lambda left, right: pd.merge(left, right, on=['Filename'],
+    df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename'],
         how='inner'), [df1, df]).reset_index(drop=True)
 
     df1 = pd.read_csv(multihot_pred_path, delimiter=',', dtype={'sourcefile': str})
@@ -47,7 +51,7 @@ def make_master_pred_csv(mapping_csv_path, label_csv_path, multihot_pred_path, s
                        column_list]
     new_column_dict = dict(zip(column_list, new_column_list))
     df1 = df1.rename(columns=new_column_dict)
-    df = reduce(lambda left, right: pd.merge(left, right, on=['Filename_original'],
+    df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename_original'],
         how='inner'), [df, df1]).reset_index(drop=True)
 
     df1 = pd.read_csv(softmax_pred_path, delimiter=',', dtype={'sourcefile': str})
@@ -56,7 +60,7 @@ def make_master_pred_csv(mapping_csv_path, label_csv_path, multihot_pred_path, s
     new_column_list = ['_'.join(column.split('_')[:-1]) + '_softmax_' + column.split('_')[-1] for column in column_list]
     new_column_dict = dict(zip(column_list, new_column_list))
     df1 = df1.rename(columns=new_column_dict)
-    df = reduce(lambda left, right: pd.merge(left, right, on=['Filename_original'],
+    df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename_original'],
         how='inner'), [df, df1]).reset_index(drop=True)
     del df['Filename_original']
 

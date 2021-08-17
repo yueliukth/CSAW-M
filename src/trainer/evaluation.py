@@ -169,9 +169,9 @@ def calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins,
         A list of predicted values.
     all_labels: list
         A list of labels.
-    bins1: list
+    positive_pred_bins: list
          A list of masking levels that are considered positive in predictions, for example  [7,8] or [1,2]
-    bins2: list
+    positive_label_bins: list
         A list of masking levels that are considered positive in labels, for example  [7,8] or [1,2]
     Returns
     -------
@@ -194,9 +194,9 @@ def calc_aucs(all_preds, all_labels):
     """Gets AUC score for downstream task.
     Parameters
     ----------
-    all_preds_prob: list
+    all_preds: list
         A list of predicted values.
-    all_auc_labels: list
+    all_labels: list
         A list of labels.
     Returns
     -------

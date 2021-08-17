@@ -22,7 +22,7 @@ from . import utility
 import globals
 
 
-def make_master_pred_csv(label_csv_path, multihot_pred_path, softmax_pred_path):
+def make_master_pred_csv(label_csv_path, multihot_pred_path, onehot_pred_path):
     # target final columns are
     # ['Filename', 'Label', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5',
     # 'If_cancer', 'If_interval_cancer', 'If_large_invasive_cancer', 'If_composite',
@@ -33,11 +33,11 @@ def make_master_pred_csv(label_csv_path, multihot_pred_path, softmax_pred_path):
     # 'Final_pred_multihot_3', 'Final_score_multihot_3',
     # 'Final_pred_multihot_4', 'Final_score_multihot_4',
     # 'Final_pred_multihot_5', 'Final_score_multihot_5',
-    # 'Final_pred_softmax_1', 'Final_score_softmax_1',
-    # 'Final_pred_softmax_2', 'Final_score_softmax_2',
-    # 'Final_pred_softmax_3', 'Final_score_softmax_3',
-    # 'Final_pred_softmax_4', 'Final_score_softmax_4',
-    # 'Final_pred_softmax_5', 'Final_score_softmax_5']
+    # 'Final_pred_onehot_1', 'Final_score_onehot_1',
+    # 'Final_pred_onehot_2', 'Final_score_onehot_2',
+    # 'Final_pred_onehot_3', 'Final_score_onehot_3',
+    # 'Final_pred_onehot_4', 'Final_score_onehot_4',
+    # 'Final_pred_onehot_5', 'Final_score_onehot_5']
 
     df = pd.read_csv(label_csv_path, delimiter=';', dtype={'sourcefile': str})
     df1 = pd.read_csv(multihot_pred_path, delimiter=';', dtype={'sourcefile': str})
@@ -49,9 +49,9 @@ def make_master_pred_csv(label_csv_path, multihot_pred_path, softmax_pred_path):
     df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename'],
         how='inner'), [df, df1]).reset_index(drop=True)
 
-    df1 = pd.read_csv(softmax_pred_path, delimiter=';', dtype={'sourcefile': str})
+    df1 = pd.read_csv(onehot_pred_path, delimiter=';', dtype={'sourcefile': str})
     column_list = [column for column in df1.columns.tolist() if 'Final_pred_' in column or 'Final_score_' in column]
-    new_column_list = ['_'.join(column.split('_')[:-1]) + '_softmax_' + column.split('_')[-1] for column in column_list]
+    new_column_list = ['_'.join(column.split('_')[:-1]) + '_onehot_' + column.split('_')[-1] for column in column_list]
     new_column_dict = dict(zip(column_list, new_column_list))
     df1 = df1.rename(columns=new_column_dict)
     df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename'],
@@ -287,7 +287,7 @@ def highlight_max(s):
 
 
 def get_table_metric(df, metric, if_highlight, positive_pred_bins, positive_label_bins):
-    table = [['', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5', 'Softmax', 'Multi-hot']]
+    table = [['', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5', 'One-hot', 'Multi-hot']]
 
     # rows to predict median and each radiologist
     for label_column in ['GT-Median', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5']:
@@ -300,7 +300,7 @@ def get_table_metric(df, metric, if_highlight, positive_pred_bins, positive_labe
             pred_list = df[column].tolist()
             pred_temp_list.append(get_metric(metric, pred_list, label_list, positive_pred_bins, positive_label_bins))
         # models
-        for str1 in ['softmax', 'multihot']:
+        for str1 in ['onehot', 'multihot']:
             column_list = [column for column in df.columns.tolist() if 'pred_' + str1 in column]
             temp_list = []
             for column in column_list:
@@ -314,10 +314,10 @@ def get_table_metric(df, metric, if_highlight, positive_pred_bins, positive_labe
 
     for i in range(1, 6):
         table_df['Expert_' + str(i)] = table_df['Expert_' + str(i)].apply(float)
-    table_df['Softmax_mean'] = table_df['Softmax'].str.split(" ").str[0].apply(float)
+    table_df['One-hot_mean'] = table_df['One-hot'].str.split(" ").str[0].apply(float)
     table_df['Multi-hot_mean'] = table_df['Multi-hot'].str.split(" ").str[0].apply(float)
     table_df = table_df[
-        ['', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5', 'Softmax_mean', 'Multi-hot_mean', 'Softmax',
+        ['', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5', 'One-hot_mean', 'Multi-hot_mean', 'One-hot',
          'Multi-hot']]
     table_df = table_df.apply(pd.to_numeric, errors='ignore')
     table_df = table_df.round(4)
@@ -359,12 +359,9 @@ def plot_corr_map(corr, save_path=None, masking=True, vmax=None, cmap='Blues', f
 
 def get_table_metric_downstream_auc(df, if_highlight=True):
     table = [['AUC', 'If_interval_cancer', 'If_large_invasive_cancer', 'If_composite']]
-    # rows to use softmax and multihot
-    for str1 in ['softmax', 'multihot']:
-        if str1 == 'softmax':
-            pred_temp_list = ['onehot']
-        else:
-            pred_temp_list = [str1]
+    # rows to use onehot and multihot
+    for str1 in ['onehot', 'multihot']:
+        pred_temp_list = [str1]
         column_list = [column for column in df.columns.tolist() if 'score_' + str1 in column]
         for label_str in ['If_interval_cancer', 'If_large_invasive_cancer', 'If_composite']:
             label_list = df[label_str].tolist()
@@ -405,7 +402,7 @@ def get_table_metric_downstream_auc(df, if_highlight=True):
 
 
 def get_table_metric_downstream_oddsratio(df, target='interval', metric='oddsratio'):
-    table = [['Interval OR', 'softmax', 'multi-hot', 'Libra_percent_density', 'Libra_dense_area', 'Libra_breast_area'],
+    table = [['Interval OR', 'one-hot', 'multi-hot', 'Libra_percent_density', 'Libra_dense_area', 'Libra_breast_area'],
              ['', 1, 1, 1, 1, 1]]
     # row for 2nd quartile Interval
     if target == 'interval':
@@ -415,7 +412,7 @@ def get_table_metric_downstream_oddsratio(df, target='interval', metric='oddsrat
 
     for quartile_idx in [2, 3, 4]:
         pred_temp_list = [str(quartile_idx) + 'nd quartile']
-        for str1 in ['softmax', 'multihot']:
+        for str1 in ['onehot', 'multihot']:
             column_list = [column for column in df.columns.tolist() if 'score_' + str1 in column and 'bin' in column]
             temp_list = []
             for column in column_list:
@@ -432,12 +429,12 @@ def get_table_metric_downstream_oddsratio(df, target='interval', metric='oddsrat
         table.append(pred_temp_list)
 
     table_df = pd.DataFrame(table[1:], columns=table[0])
-    table_df['softmax_mean'] = table_df['softmax'].str.split(" ").str[0].apply(float)
+    table_df['one-hot_mean'] = table_df['one-hot'].str.split(" ").str[0].apply(float)
     table_df['multi-hot_mean'] = table_df['multi-hot'].str.split(" ").str[0].apply(float)
     table_df.iloc[0] = int(1)
     table_df = table_df.apply(pd.to_numeric, errors='ignore')
     table_df = table_df[
-        ['softmax', 'multi-hot', 'softmax_mean', 'multi-hot_mean', 'Libra_percent_density', 'Libra_dense_area',
+        ['one-hot', 'multi-hot', 'one-hot_mean', 'multi-hot_mean', 'Libra_percent_density', 'Libra_dense_area',
          'Libra_breast_area']]
     table_df = table_df.round(4)
     if metric == 'oddsratio':
@@ -447,7 +444,7 @@ def get_table_metric_downstream_oddsratio(df, target='interval', metric='oddsrat
 
 
 def get_oddsratio_plots(df, save_path=None, target='interval', metric='oddsratio'):
-    table = [['Interval OR', 'softmax', 'multi-hot', 'Libra_percent_density', 'Libra_dense_area', 'Libra_breast_area'],
+    table = [['Interval OR', 'one-hot', 'multi-hot', 'Libra_percent_density', 'Libra_dense_area', 'Libra_breast_area'],
              ['', 1, 1, 1, 1, 1]]
     plot_df = pd.DataFrame(columns=['quartile', 'prediction', 'odds_ratio'])
     count = 0
@@ -460,7 +457,7 @@ def get_oddsratio_plots(df, save_path=None, target='interval', metric='oddsratio
         label_list = df['If_composite'].tolist()
 
     for quartile_idx in [2, 3, 4]:
-        for str1 in ['softmax', 'multihot']:
+        for str1 in ['onehot', 'multihot']:
             column_list = [column for column in df.columns.tolist() if 'score_' + str1 in column and 'bin' in column]
 
             for column in column_list:
@@ -490,7 +487,7 @@ def get_oddsratio_plots(df, save_path=None, target='interval', metric='oddsratio
             plot_df.loc[count, 'odds_ratio'] = or_value
             count += 1
 
-    index_list = plot_df[plot_df['prediction'].str.contains('softmax')].index.tolist()
+    index_list = plot_df[plot_df['prediction'].str.contains('onehot')].index.tolist()
     plot_df.loc[index_list, 'model'] = 'One-hot'
 
     index_list = plot_df[plot_df['prediction'].str.contains('multihot')].index.tolist()
@@ -595,7 +592,7 @@ def get_metric_separate_masking_levels(df, gt_column, rows, columns, metric):
                 temp_list.append(get_metric(metric, new_df[row].tolist(), new_df[gt_column].tolist(), None, None))
             else:
                 if row == 'One-hot':
-                    five_rows = [column for column in df.columns.tolist() if 'Final_pred_softmax' in column]
+                    five_rows = [column for column in df.columns.tolist() if 'Final_pred_onehot' in column]
                 elif row == 'Multi-hot':
                     five_rows = [column for column in df.columns.tolist() if 'Final_pred_multihot' in column]
                 kendall_list = []

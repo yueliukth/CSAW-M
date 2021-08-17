@@ -196,7 +196,7 @@ def calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins,
     return precision, recall, f1
 
 
-def calc_aucs(all_preds_prob, all_auc_labels):
+def calc_aucs(all_preds, all_labels):
     """Gets AUC score for downstream task.
     Parameters
     ----------
@@ -210,7 +210,7 @@ def calc_aucs(all_preds_prob, all_auc_labels):
         The AUC score.
     """
 
-    auc = roc_auc_score(all_auc_labels, all_preds_prob)
+    auc = roc_auc_score(y_true=all_labels, y_score=all_preds)
     return auc
 
 
@@ -377,7 +377,7 @@ def get_table_metric_downstream_auc(df, if_highlight=True):
             temp_list = []
             for column in column_list:
                 pred_list = df[column].tolist()
-                temp_list.append(calc_aucs(pred_list, label_list))
+                temp_list.append(calc_aucs(all_preds=pred_list, all_labels=label_list))
 
             pred_temp_list.append(str("%.4f" % np.average(temp_list)) + ' +- ' + str("%.4f" % np.std(temp_list)))
         table.append(pred_temp_list)
@@ -388,7 +388,7 @@ def get_table_metric_downstream_auc(df, if_highlight=True):
         for label_str in ['If_interval_cancer', 'If_large_invasive_cancer', 'If_composite']:
             label_list = df[label_str].tolist()
             pred_list = df[str1].tolist()
-            pred_temp_list.append(calc_aucs(pred_list, label_list))
+            pred_temp_list.append(calc_aucs(all_preds=pred_list, all_labels=label_list))
         table.append(pred_temp_list)
 
     table_df = pd.DataFrame(table[1:], columns=table[0])

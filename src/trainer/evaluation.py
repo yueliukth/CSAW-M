@@ -219,11 +219,11 @@ def calc_oddsratio_downstream(all_preds, all_labels, bin_list, metric):
     Parameters
     ----------
     all_preds: list
-        A list of predicted values, percentile integers [1,2,3,4,5,6,7,8].
+        A list of predicted values, quantile integers [1,2,3,4,5,6,7,8].
     all_labels: list
         A list of labels, binary labels for downstream task.
     bin_list: list
-        A list of percentiles that we want to compare against the first 2 percentiles
+        A list of quantiles that we want to compare against the first 2 quantiles
     Returns
     -------
     odds ratio: float

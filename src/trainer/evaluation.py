@@ -74,20 +74,26 @@ def make_master_pred_csv(mapping_csv_path, label_csv_path, multihot_pred_path, s
     return df
 
 
-def df_score_to_bin(df):
-    num = int(df.shape[0] / 8)
+def df_score_to_bin(df, num_bins=8):
+    """Split continuous scores into number_bins groups, each group having same amount of samples.
+        Parameters
+        ----------
+        df: pandas data frame
+        num_bins: integar, number of bins
+        Returns
+        -------
+        df: updated pandas data frame with new columns indicating bin groups.
+        """
+    num = int(df.shape[0] / num_bins)
     column_list = [column for column in df.columns.tolist() if 'score_' in column]
     for column in column_list + ['Libra_percent_density', 'Libra_dense_area', 'Libra_breast_area']:
         df = df.sort_values(by=column).reset_index(drop=True)
         str2 = column + '_bin'
-        df.loc[:num, str2] = 1
-        df.loc[num:num * 2, str2] = 2
-        df.loc[num * 2:num * 3, str2] = 3
-        df.loc[num * 3:num * 4, str2] = 4
-        df.loc[num * 4:num * 5, str2] = 5
-        df.loc[num * 5:num * 6, str2] = 6
-        df.loc[num * 6:num * 7, str2] = 7
-        df.loc[num * 7:, str2] = 8
+        for bin_index in range(1, num_bins+1):
+            if bin_index!=num_bins:
+                df.loc[num*(bin_index-1):num*bin_index, str2] = bin_index
+            else:
+                df.loc[num * (bin_index - 1):, str2] = bin_index
     return df
 
 

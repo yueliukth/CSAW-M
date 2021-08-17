@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Note: to be run from inside scripts folder. This script should be called from inside docker_local
+# Note: to be run from inside scripts folder.
 cd ../src || { echo "Could not change directory, aborting..."; exit 1; }
 
 # variables

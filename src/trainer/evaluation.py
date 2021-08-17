@@ -22,54 +22,48 @@ from . import utility
 import globals
 
 
-def make_master_pred_csv(mapping_csv_path, label_csv_path, multihot_pred_path, softmax_pred_path):
+def make_master_pred_csv(label_csv_path, multihot_pred_path, softmax_pred_path):
     # target final columns are
     # ['Filename', 'Label', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5',
     # 'If_cancer', 'If_interval_cancer', 'If_large_invasive_cancer', 'If_composite',
     # 'Dicom_image_laterality', 'Dicom_window_center', 'Dicom_window_width', 'Dicom_photometric_interpretation',
     # 'Libra_percent_density', 'Libra_dense_area', 'Libra_breast_area',
-    # 'final_pred_multihot_1', 'final_score_multihot_1',
-    # 'final_pred_multihot_2', 'final_score_multihot_2',
-    # 'final_pred_multihot_3', 'final_score_multihot_3',
-    # 'final_pred_multihot_4', 'final_score_multihot_4',
-    # 'final_pred_multihot_5', 'final_score_multihot_5',
-    # 'final_pred_softmax_1', 'final_score_softmax_1',
-    # 'final_pred_softmax_2', 'final_score_softmax_2',
-    # 'final_pred_softmax_3', 'final_score_softmax_3',
-    # 'final_pred_softmax_4', 'final_score_softmax_4',
-    # 'final_pred_softmax_5', 'final_score_softmax_5']
+    # 'Final_pred_multihot_1', 'Final_score_multihot_1',
+    # 'Final_pred_multihot_2', 'Final_score_multihot_2',
+    # 'Final_pred_multihot_3', 'Final_score_multihot_3',
+    # 'Final_pred_multihot_4', 'Final_score_multihot_4',
+    # 'Final_pred_multihot_5', 'Final_score_multihot_5',
+    # 'Final_pred_softmax_1', 'Final_score_softmax_1',
+    # 'Final_pred_softmax_2', 'Final_score_softmax_2',
+    # 'Final_pred_softmax_3', 'Final_score_softmax_3',
+    # 'Final_pred_softmax_4', 'Final_score_softmax_4',
+    # 'Final_pred_softmax_5', 'Final_score_softmax_5']
 
-    df1 = pd.read_csv(mapping_csv_path, delimiter=';', dtype={'sourcefile': str})
     df = pd.read_csv(label_csv_path, delimiter=';', dtype={'sourcefile': str})
-    df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename'],
-        how='inner'), [df1, df]).reset_index(drop=True)
-
-    df1 = pd.read_csv(multihot_pred_path, delimiter=',', dtype={'sourcefile': str})
-    df1 = df1.rename(columns={'Filename': 'Filename_original'})
-    column_list = [column for column in df1.columns.tolist() if 'final_pred_' in column or 'final_score_' in column]
+    df1 = pd.read_csv(multihot_pred_path, delimiter=';', dtype={'sourcefile': str})
+    column_list = [column for column in df1.columns.tolist() if 'Final_pred_' in column or 'Final_score_' in column]
     new_column_list = ['_'.join(column.split('_')[:-1]) + '_multihot_' + column.split('_')[-1] for column in
                        column_list]
     new_column_dict = dict(zip(column_list, new_column_list))
     df1 = df1.rename(columns=new_column_dict)
-    df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename_original'],
+    df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename'],
         how='inner'), [df, df1]).reset_index(drop=True)
 
-    df1 = pd.read_csv(softmax_pred_path, delimiter=',', dtype={'sourcefile': str})
-    df1 = df1.rename(columns={'Filename': 'Filename_original'})
-    column_list = [column for column in df1.columns.tolist() if 'final_pred_' in column or 'final_score_' in column]
+    df1 = pd.read_csv(softmax_pred_path, delimiter=';', dtype={'sourcefile': str})
+    column_list = [column for column in df1.columns.tolist() if 'Final_pred_' in column or 'Final_score_' in column]
     new_column_list = ['_'.join(column.split('_')[:-1]) + '_softmax_' + column.split('_')[-1] for column in column_list]
     new_column_dict = dict(zip(column_list, new_column_list))
     df1 = df1.rename(columns=new_column_dict)
-    df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename_original'],
+    df = functools.reduce(lambda left, right: pd.merge(left, right, on=['Filename'],
         how='inner'), [df, df1]).reset_index(drop=True)
-    del df['Filename_original']
 
     # change bin range from 0-7 to 1-8, if needed
-    column_list = [column for column in df.columns.tolist() if 'final_pred_' in column]
+    column_list = [column for column in df.columns.tolist() if 'Final_pred_' in column]
     for column in column_list:
         if np.max(df[column].tolist()) == 7 or np.min(df[column].tolist()) == 0:
             df[column] = df[column] + 1
             df[column] = df[column].apply(int)
+            print('Changing bin range from 0-7 to 1-8')
 
     return df
 
@@ -601,9 +595,9 @@ def get_metric_separate_masking_levels(df, gt_column, rows, columns, metric):
                 temp_list.append(get_metric(metric, new_df[row].tolist(), new_df[gt_column].tolist(), None, None))
             else:
                 if row == 'One-hot':
-                    five_rows = [column for column in df.columns.tolist() if 'final_pred_softmax' in column]
+                    five_rows = [column for column in df.columns.tolist() if 'Final_pred_softmax' in column]
                 elif row == 'Multi-hot':
-                    five_rows = [column for column in df.columns.tolist() if 'final_pred_multihot' in column]
+                    five_rows = [column for column in df.columns.tolist() if 'Final_pred_multihot' in column]
                 kendall_list = []
                 for five_row in five_rows:
                     kendall_list.append(

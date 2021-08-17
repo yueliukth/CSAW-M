@@ -576,7 +576,7 @@ def make_variations_violin_plot(df, save_path=None):
         plt.show()
 
 
-def get_metric_seperate_masking_levels(df, gt_column, rows, columns, metric):
+def get_metric_separate_masking_levels(df, gt_column, rows, columns, metric):
     all_list = []
     for row in rows:
         temp_list = []
@@ -607,10 +607,9 @@ def get_metric_seperate_masking_levels(df, gt_column, rows, columns, metric):
     return all_list
 
 
-def plot_metric_seperate_masking_levels(corr, save_path=None, vmax=None, cmap='Blues', fmt=".2f", which_bold=None):
+def plot_metric_separate_masking_levels(corr, columns, save_path=None, vmax=None, cmap='Blues', fmt=".2f", which_bold=None):
     with sns.axes_style("white"):
         f, ax = plt.subplots(figsize=(10, 6))
-
         ax = sns.heatmap(np.transpose(corr), square=True, annot=True, cmap=cmap, vmax=vmax, fmt=fmt,
             annot_kws={"fontsize": 13}, cbar_kws={"shrink": .72},
             xticklabels=['GT - Median', 'Expert 1', 'Expert 2', 'Expert 3', 'Expert 4', 'Expert 5', 'One-hot',
@@ -619,6 +618,7 @@ def plot_metric_seperate_masking_levels(corr, save_path=None, vmax=None, cmap='B
 
         ax.tick_params(labeltop=True, labelbottom=False, rotation=25, axis='x', labelsize=12)
         ax.tick_params(labeltop=True, labelbottom=False, rotation=0, axis='y', labelsize=12)
+        plt.vlines(6, 0, 4, colors='white', linestyles='dashed', linewidth=2)
         if not which_bold == None:
             ax.get_xticklabels()[which_bold].set_fontweight("bold")
         if save_path != None:

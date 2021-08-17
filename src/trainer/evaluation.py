@@ -161,7 +161,7 @@ def calc_class_absolute_error(all_preds, all_labels):
     return np.average(all_mae)
 
 
-def calc_precision_and_recall_network(all_preds, all_labels, bins1, bins2):
+def calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins, positive_lablel_bins):
     """Gets the F1 score.
     Parameters
     ----------
@@ -181,8 +181,9 @@ def calc_precision_and_recall_network(all_preds, all_labels, bins1, bins2):
         The F1 score.
     """
 
-    all_labels = ['t' if label in bins1 else 'o' for label in all_labels]  # 't': target, 'o': others
-    all_preds = ['t' if pred in bins2 else 'o' for pred in all_preds]
+    all_preds = ['t' if pred in positive_pred_bins else 'o' for pred in all_preds] # 't': target, 'o': others
+    all_labels = ['t' if label in positive_lablel_bins else 'o' for label in all_labels]
+
     precision = precision_score(y_true=all_labels, y_pred=all_preds, average='binary', pos_label='t')  # look for 't'
     recall = recall_score(y_true=all_labels, y_pred=all_preds, average='binary', pos_label='t')
     f1 = f1_score(y_true=all_labels, y_pred=all_preds, average='binary', pos_label='t')

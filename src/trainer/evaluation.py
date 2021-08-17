@@ -161,7 +161,7 @@ def calc_class_absolute_error(all_preds, all_labels):
     return np.average(all_mae)
 
 
-def calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins, positive_lablel_bins):
+def calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins, positive_label_bins):
     """Gets the F1 score.
     Parameters
     ----------
@@ -182,7 +182,7 @@ def calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins,
     """
 
     all_preds = ['t' if pred in positive_pred_bins else 'o' for pred in all_preds] # 't': target, 'o': others
-    all_labels = ['t' if label in positive_lablel_bins else 'o' for label in all_labels]
+    all_labels = ['t' if label in positive_label_bins else 'o' for label in all_labels]
 
     precision = precision_score(y_true=all_labels, y_pred=all_preds, average='binary', pos_label='t')  # look for 't'
     recall = recall_score(y_true=all_labels, y_pred=all_preds, average='binary', pos_label='t')
@@ -248,19 +248,19 @@ def calc_oddsratio_downstream(all_preds, all_labels, bin_list, metric):
         return 'nan'
 
 
-def get_metric(metric, all_preds, all_labels, bin_list1, bin_list2):
+def get_metric(metric, all_preds, all_labels, positive_pred_bins, positive_label_bins):
     if metric == 'kendall':
         return calc_kendall_rank_correlation(all_preds, all_labels)
     elif metric == 'amae':
         return calc_class_absolute_error(all_preds, all_labels)
     elif metric == 'lowbinf1':
-        return calc_precision_and_recall_network(all_preds, all_labels, [1, 2], [1, 2])[-1]
+        return calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins=[1, 2], positive_label_bins=[1, 2])[-1]
     elif metric == 'highbinf1':
-        return calc_precision_and_recall_network(all_preds, all_labels, [7, 8], [7, 8])[-1]
+        return calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins=[7, 8], positive_label_bins=[7, 8])[-1]
     elif metric == 'lowbinf1_private':
-        return calc_precision_and_recall_network(all_preds, all_labels, bin_list1, bin_list2)[-1]
+        return calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins, positive_label_bins)[-1]
     elif metric == 'highbinf1_private':
-        return calc_precision_and_recall_network(all_preds, all_labels, bin_list1, bin_list2)[-1]
+        return calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins, positive_label_bins)[-1]
 
 
 # ---------------- functions related to plotting results ----------------
@@ -286,7 +286,7 @@ def highlight_max(s):
             for cell in is_max]
 
 
-def get_table_metric(df, metric, if_highlight, bin_list1, bin_list2):
+def get_table_metric(df, metric, if_highlight, positive_pred_bins, positive_label_bins):
     table = [['', 'Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5', 'Softmax', 'Multi-hot']]
 
     # rows to predict median and each radiologist
@@ -298,7 +298,7 @@ def get_table_metric(df, metric, if_highlight, bin_list1, bin_list2):
         for column in ['Expert_1', 'Expert_2', 'Expert_3', 'Expert_4', 'Expert_5']:
             label_list = df[label_column].tolist()
             pred_list = df[column].tolist()
-            pred_temp_list.append(get_metric(metric, pred_list, label_list, bin_list1, bin_list2))
+            pred_temp_list.append(get_metric(metric, pred_list, label_list, positive_pred_bins, positive_label_bins))
         # models
         for str1 in ['softmax', 'multihot']:
             column_list = [column for column in df.columns.tolist() if 'pred_' + str1 in column]
@@ -306,7 +306,7 @@ def get_table_metric(df, metric, if_highlight, bin_list1, bin_list2):
             for column in column_list:
                 label_list = df[label_column].tolist()
                 pred_list = df[column].tolist()
-                temp_list.append(get_metric(metric, pred_list, label_list, bin_list1, bin_list2))
+                temp_list.append(get_metric(metric, pred_list, label_list, positive_pred_bins, positive_label_bins))
             pred_temp_list.append(str("%.4f" % np.average(temp_list)) + ' +- ' + str("%.4f" % np.std(temp_list)))
         table.append(pred_temp_list)
 
@@ -692,8 +692,8 @@ def calc_metrics(val_loader, model, loss_type, confusion=False, only_get_preds=F
         # average mean abs error over classes
         amae = calc_class_absolute_error(all_preds, all_labels)  # average over classes, not dominated by majority
         # precision, recall, f1 for low and high bins
-        low_bin_precision, low_bin_recall, low_bin_f1 = calc_precision_and_recall_network(all_preds, all_labels, bins1=[1, 2], bins2=[1, 2])
-        high_bin_precision, high_bin_recall, high_bin_f1 = calc_precision_and_recall_network(all_preds, all_labels, bins1=[7, 8], bins2=[7, 8])
+        low_bin_precision, low_bin_recall, low_bin_f1 = calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins=[1, 2], positive_label_bins=[1, 2])
+        high_bin_precision, high_bin_recall, high_bin_f1 = calc_precision_and_recall_network(all_preds, all_labels, positive_pred_bins=[7, 8], positive_label_bins=[7, 8])
     else:
         kendall = amae = None
         low_bin_precision = low_bin_recall = low_bin_f1 = high_bin_precision = high_bin_recall = high_bin_f1 = None

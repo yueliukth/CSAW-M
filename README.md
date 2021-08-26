@@ -3,6 +3,7 @@ This repository contains code for _CSAW-M: An Ordinal Classification Dataset for
 The repo containing the annotation tool developed to annotate CSAW-M could be found here: https://github.com/MoeinSorkhei/CSAW-M_Annotation_Tool.  
 _---- This repo is under construction and is contunusously being updated! ----_
 
+Our work is licensed [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/).
 
 ### Training
 In order to train a model, please refer to `scripts/train.sh` where we have prepared commands and arguments to train a model. In order to encourage reproducibility, we also provide the cross-validation splits that we used in the project (please refer to the dataset website to access them). `scripts/cross_val.sh` provides example commands to run cross-validation.

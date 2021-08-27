@@ -354,6 +354,8 @@ def plot_corr_map(corr, save_path=None, masking=True, vmax=None, cmap='Blues', f
         plt.vlines(5, 0, 5, colors='white', linestyles='dashed', linewidth=2)
         plt.hlines(1, 0, 7, colors='white', linestyles='dashed', linewidth=2)
     if save_path != None:
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
         plt.savefig(save_path, dpi=120, bbox_inches='tight')
 
 
@@ -540,6 +542,8 @@ def get_oddsratio_plots(df, save_path=None, target='interval', metric='oddsratio
     ax3.axhline(1, ls='--', color='gray', alpha=0.5)
     ax4.axhline(1, ls='--', color='gray', alpha=0.5)
     if save_path != None:
+        if not os.path.exists(os.path.dirname(save_path)):
+            os.makedirs(os.path.dirname(save_path))
         g.savefig(save_path, bbox_inches='tight')
     plt.show()
     return plot_df
@@ -570,6 +574,8 @@ def make_variations_violin_plot(df, save_path=None):
         plt.xlabel('')
         plt.grid(b=True)
         if save_path != None:
+            if not os.path.exists(os.path.dirname(save_path)):
+                os.makedirs(os.path.dirname(save_path))
             plt.savefig(save_path, bbox_inches='tight')
         plt.show()
 
@@ -620,6 +626,8 @@ def plot_metric_separate_masking_levels(corr, columns, save_path=None, vmax=None
         if not which_bold == None:
             ax.get_xticklabels()[which_bold].set_fontweight("bold")
         if save_path != None:
+            if not os.path.exists(os.path.dirname(save_path)):
+                os.makedirs(os.path.dirname(save_path))
             plt.savefig(save_path, dpi=120, bbox_inches='tight')
 
 

@@ -14,7 +14,7 @@ _---- This repo is under construction and is contunusously being updated! ----_
 ### Training and evaluation
 - In order to train a model, please refer to `scripts/train.sh` where we have prepared commands and arguments to train a model. In order to encourage reproducibility, we also provide the cross-validation splits that we used in the project (please refer to the dataset website to access them). `scripts/cross_val.sh` provides example commands to run cross-validation.  
 - In order to evaluate a trained model, please refer to `scripts/eval.sh` with example commands and arguments to evaluate a model.
-- Checkpoints could be downloaded from [here](https://kth.box.com/s/poqjqhwnx86rb6irpjhudvntz22zksqj).
+- Checkpoints could be downloaded from [here](https://kth.box.com/s/2td2k4krypk008k8yuzegoy7cf19ugxa).
 
 ---
 

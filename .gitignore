@@ -1,4 +1,4 @@
-data/*
+trash/data/*
 all_others/
 *.idea
 __pycache__*
@@ -6,11 +6,10 @@ __pycache__/
 *.pyc
 .DS_Store
 **/.DS_Scleartore
-scripts_local/*
-env_files_local/*
-docker_local/*
+trash/scripts_local/*
+trash/env_files_local/*
+trash/docker_local/*
 src/history.py
 src/test.py
 trash/*
-docker/build_docker.sh
 docker/run_docker.sh

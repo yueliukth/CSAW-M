@@ -37,18 +37,6 @@ def get_breast_percent(img_array, if_pad_small_resolution=False, if_large_resolu
     return breast_percent
 
 
-# def threshold_img(img, low_int_threshold=0):
-#     # create img for thresholding and contours
-#     img_8u = (img.astype('float32') / img.max() * 255).astype('uint8')
-#
-#     if low_int_threshold < 1:
-#         low_th = int(img_8u.max() * low_int_threshold)
-#     else:
-#         low_th = int(low_int_threshold)
-#     _, img_bin = cv2.threshold(img_8u, low_th, maxval=255, type=cv2.THRESH_BINARY)
-#     return img_bin
-
-
 def get_centroid(img, threshold=0):
     _, _, biggest_contour = segment_breast(img, threshold)
 
@@ -148,39 +136,6 @@ def segment_breast(img, threshold=0):
 
     # breast_mask is a binary mask, and img_breast_only is with real pixel values shown in the area of breast_mask
     return img_breast_only, breast_mask, biggest_contour
-
-
-# function to locate the center of mass
-# def new_cropping_single_dist(img):
-#     opening_it = 5
-#     kernel_size = (15, 15)
-#     kernel = np.ones(shape=kernel_size, dtype=np.uint8)
-#
-#     # create binary image from source image
-#     _, img = cv2.threshold(src=img, thresh=img.min(), maxval=img.max(), type=cv2.THRESH_BINARY)  # binarize img: make all pixels greater than thresh equal to maxval, and the rest 0
-#
-#     # gaussian bluring to remove sharp pixels
-#     img = cv2.GaussianBlur(src=img, ksize=kernel_size, sigmaX=0, sigmaY=0)   # sigmaX=0, sigmaY=0 will result in OpenCV defining the std's by itself
-#
-#     # apply dilation to connect all breast tissue
-#     img = cv2.dilate(src=img, kernel=kernel, iterations=5)
-#
-#     # apply opening to remove noise
-#     opening = cv2.morphologyEx(src=img, op=cv2.MORPH_OPEN, kernel=kernel, iterations=opening_it)
-#
-#     # add boarders to the image (width 1, value 0) to prepare for later distance transform with which we find the distance from every nonzero pixels to its boarder
-#     opening = cv2.copyMakeBorder(src=opening, top=1, bottom=1, left=1, right=1, borderType=cv2.BORDER_CONSTANT, value=0)
-#     opening = opening.astype(np.uint8)
-#
-#     # distance transform
-#     dist = cv2.distanceTransform(src=opening, distanceType=cv2.DIST_L2, maskSize=5)  # calculates the distance to the closest zero pixel for each pixel of the source image (from OpenCV doc)
-#
-#     # apply gussain blurring on distance transform
-#     dist = cv2.GaussianBlur(src=dist, ksize=kernel_size, sigmaX=0, sigmaY=0)
-#
-#     # finds the position with maximum maximum element value
-#     max_loc = cv2.minMaxLoc(dist)[-1]
-#     return max_loc
 
 
 # function to add padding or perform cropping
@@ -346,13 +301,6 @@ def _save_as_raw_png(dicom_folder, dicom_basenames, png_folder, image_size):
             determined_image_size = image_size[orig_shape_wh]
         else:
             raise NotImplementedError('"determined_image_size" cannot be calculated for the current image_size')
-
-        # save images
-        # if reduce_bits:  # this reduces the quality of the PNG image - it has not been used in the project
-        #     img_array = img_array / (2 ** 16 - 1)
-        #     img_array = helper.unnormalize_image(img_array)  # reduce to 8 bits, using np.astype(np.uint8) destroys the image
-        #     Image.fromarray(img_array).convert('RGB').resize(determined_image_size).save(new_path)  # save as RGB not gray
-        # else:
         # save the raw PNG as 16-bit (16 bits allocated to dicom pixel_array)
         cv2.imwrite(new_path, cv2.resize(img_array.astype(np.uint16), determined_image_size))
 

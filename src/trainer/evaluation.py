@@ -338,23 +338,24 @@ def plot_corr_map(corr, save_path=None, masking=True, vmax=None, cmap='Blues', f
     mask[[2, 3, 3, 4, 4, 4, 5, 5, 5, 5],
          [0, 0, 1, 0, 1, 2, 0, 1, 2, 3]] = True
     yticklabels = ['GT - Median', 'Expert 1', 'Expert 2', 'Expert 3', 'Expert 4', 'Expert 5']
-    xticklabels = ['    Expert 1', '    Expert 2', '    Expert 3', '    Expert 4', '    Expert 5', '    One-hot', '    Multi-hot']
+    xticklabels = ['          Expert 1', '          Expert 2', '          Expert 3', '          Expert 4', '          Expert 5', '          One-hot', '          Multi-hot']
     with sns.axes_style("white"):
         f, ax = plt.subplots(figsize=(7, 5))
         if masking:
             ax = sns.heatmap(corr, mask=mask, square=True, annot=True, cmap=cmap, vmax=vmax, fmt=fmt,
-                annot_kws={"fontsize": 8},
-                yticklabels=yticklabels,
-                xticklabels=xticklabels)
+                             annot_kws={"fontsize": 8},
+                             yticklabels=yticklabels,
+                             xticklabels=xticklabels)
         else:
             ax = sns.heatmap(corr, square=True, annot=True, cmap=cmap, vmax=vmax, fmt=fmt, annot_kws={"fontsize": 13},
-                yticklabels=yticklabels,
-                xticklabels=xticklabels)
+                             yticklabels=yticklabels,
+                             xticklabels=xticklabels)
 
         ax.tick_params(labeltop=True, labelbottom=False, rotation=20, axis='x', labelsize=12)
         ax.tick_params(labeltop=True, labelbottom=False, axis='y', labelsize=12)
         plt.vlines(5, 0, 5, colors='white', linestyles='dashed', linewidth=2)
         plt.hlines(1, 0, 7, colors='white', linestyles='dashed', linewidth=2)
+        plt.setp(ax.get_xticklabels(), ha="center", rotation_mode="anchor")
     if save_path != None:
         if not os.path.exists(os.path.dirname(save_path)):
             os.makedirs(os.path.dirname(save_path))

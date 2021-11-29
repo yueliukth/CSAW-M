@@ -1,13 +1,10 @@
 # CSAW-M
 This repository contains code for [_CSAW-M: An Ordinal Classification Dataset for Benchmarking Mammographic Masking of Cancer_](https://openreview.net/forum?id=nlJ1rV6G_Iq). Source code for training models to estimate the mammographic masking level along with the checkpoints are made available here.  
-The repo containing the annotation tool developed to annotate CSAW-M could be found [here](https://github.com/MoeinSorkhei/CSAW-M_Annotation_Tool).  
+The repo containing the annotation tool developed to annotate CSAW-M could be found [here](https://github.com/MoeinSorkhei/CSAW-M_Annotation_Tool). The dataset could be foud with `DOI: 10.17044/scilifelab.14687271`.  
 
 <p align="middle">
   <img src="figs/masking_levels.png" />
 </p>
-
-Our work is licensed [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/).  
-_---- This repo is under construction and is contunusously being updated! ----_ 
 
 ---
 
@@ -33,6 +30,18 @@ _---- This repo is under construction and is contunusously being updated! ----_
 - By default, there is no suggested validation csv files, but in cross-validation (using `--cv`) the train/validation splits in each fold are extracted from the `cv_files` paths specified in `params.yml`.  
 - In `src/experiments.py` you can find the call to the function that preprocesses the raw images. For some images we have defined a special set of parameters to be used to ensure text is successfully removed from the images during preprocessing. We have documented every step of the preprocessing function to make it more udnerstandable - feel free to modify it if you want to have your own preprocessed images!
 - The Dockerfile and packages used in this project could be found in the `docker` folder.
+
+---
+### Citation
+If you use this work, please cite our paper:
+
+```
+@article{sorkhei2021csaw,
+  title={CSAW-M: An Ordinal Classification Dataset for Benchmarking Mammographic Masking of Cancer},
+  author={Sorkhei, Moein and Liu, Yue and Azizpour, Hossein and Azavedo, Edward and Dembrower, Karin and Ntoula, Dimitra and Zouzos, Athanasios and Strand, Fredrik and Smith, Kevin},
+  year={2021}
+}
+```
 
 ---
 

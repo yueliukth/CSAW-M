@@ -1,6 +1,6 @@
 # CSAW-M
 This repository contains code for [_CSAW-M: An Ordinal Classification Dataset for Benchmarking Mammographic Masking of Cancer_](https://openreview.net/forum?id=nlJ1rV6G_Iq). Source code for training models to estimate the mammographic masking level along with the checkpoints are made available here.  
-The repo containing the annotation tool developed to annotate CSAW-M could be found [here](https://github.com/MoeinSorkhei/CSAW-M_Annotation_Tool). The dataset could be foud with `DOI: 10.17044/scilifelab.14687271`.  
+The repo containing the annotation tool developed to annotate CSAW-M could be found [here](https://github.com/MoeinSorkhei/CSAW-M_Annotation_Tool). The dataset could be found at `https://doi.org/10.17044/scilifelab.14687271`.  
 
 <p align="middle">
   <img src="figs/masking_levels.png" />
